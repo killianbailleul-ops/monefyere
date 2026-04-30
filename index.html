@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 Budget Pro - Supabase</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #28a745;
+            --danger: #ff6b6b;
+            --warning: #ffc107;
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --text-primary: #eaeaea;
+            --text-secondary: #a8a8a8;
+            --border: #333;
+        }
+        body.light-mode {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f7fa;
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --border: #e0e0e0;
+        }
+        html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .app-wrapper { display: flex; height: 100vh; }
+        .sidebar {
+            width: 260px;
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .sidebar-header {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 25px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .nav-menu { flex: 1; }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 11px 12px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .nav-item:hover { background: var(--bg-secondary); color: var(--primary); }
+        .nav-item.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        .nav-icon { font-size: 18px; margin-right: 10px; }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 25px;
+            height: 65px;
+        }
+        .topbar-title { font-size: 22px; font-weight: 600; }
+        .sync-indicator {
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            background: var(--bg-secondary);
+            color: var(--success);
+        }
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 25px;
+        }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: #000;
+        }
+        .login-card {
+            background: #1a1a1a;
+            padding: 45px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid #333;
+        }
+        .login-card h1 { text-align: center; margin-bottom: 10px; color: white; font-size: 28px; }
+        .login-card p { text-align: center; color: #888; margin-bottom: 30px; font-size: 14px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; color: #ddd; font-weight: 600; font-size: 14px; }
+        .form-group input { width: 100%; padding: 11px; border: 1px solid #444; border-radius: 6px; color: white; background: #222; font-size: 15px; }
+        .form-group input::placeholder { color: #666; }
+        .btn {
+            width: 100%;
+            padding: 11px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn.secondary { background: #6c757d; }
+        .btn.danger { background: var(--danger); }
+        .btn.small { padding: 8px 14px; width: auto; font-size: 13px; margin-top: 0; }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: var(--bg-primary);
+            border-left: 5px solid var(--primary);
+            padding: 22px;
+            border-radius: 8px;
+        }
+        .card.success { border-left-color: var(--success); }
+        .card.danger { border-left-color: var(--danger); }
+        .card-title {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        .card-value { font-size: 32px; font-weight: 700; color: var(--text-primary); }
+        .card.success .card-value { color: var(--success); }
+        .card.danger .card-value { color: var(--danger); }
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+        .account-card {
+            background: var(--bg-primary);
+            border-left: 5px solid var(--primary);
+            padding: 18px;
+            border-radius: 8px;
+        }
+        .account-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+        .account-balance { font-size: 26px; font-weight: 700; color: var(--success); }
+        .form-section {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            padding: 22px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .form-section h3 { margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600; }
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 13px;
+            margin-bottom: 13px;
+        }
+        .form-row input, .form-row select {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        .transactions-table {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .table-header {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 0.6fr;
+            gap: 13px;
+            background: var(--bg-secondary);
+            padding: 13px 16px;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        .table-row {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 0.6fr;
+            gap: 13px;
+            padding: 13px 16px;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+            font-size: 14px;
+        }
+        .tx-amount.income { color: var(--success); font-weight: 600; }
+        .tx-amount.expense { color: var(--danger); font-weight: 600; }
+        .tx-delete-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 6px 9px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .tx-delete-btn:hover { background: #ff5555; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--bg-primary);
+            padding: 28px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header { font-size: 19px; font-weight: 600; margin-bottom: 20px; color: var(--text-primary); }
+        .modal-input { margin-bottom: 14px; }
+        .modal-input label { display: block; margin-bottom: 5px; color: var(--text-primary); font-weight: 600; font-size: 13px; }
+        .modal-input input, .modal-input select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        @media (max-width: 768px) {
+            .app-wrapper { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+            .content { padding: 15px; }
+            .dashboard-grid { grid-template-columns: 1fr; gap: 12px; }
+            .accounts-grid { grid-template-columns: repeat(2, 1fr); }
+            .table-header, .table-row { grid-template-columns: 1.2fr 1fr 0.8fr 0.8fr 0.6fr 0.4fr; font-size: 12px; gap: 9px; padding: 10px 11px; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <div class="login-container" id="loginContainer">
+        <div class="login-card">
+            <h1>💰 Budget Pro</h1>
+            <p>Synchronisation Cloud ☁️</p>
+            <div id="loginForm">
+                <div class="form-group">
+                    <label>👤 Email</label>
+                    <input type="email" id="loginEmail" placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label>🔐 Mot de passe</label>
+                    <input type="password" id="loginPassword" placeholder="password">
+                </div>
+                <button class="btn" onclick="handleLogin()">Se connecter</button>
+                <button class="btn secondary" onclick="showRegisterForm()">Créer un compte</button>
+            </div>
+            <div id="registerForm" style="display:none;">
+                <h3 style="margin-bottom:18px;color:white;font-size:16px;">Nouvel utilisateur</h3>
+                <div class="form-group">
+                    <label>👤 Email</label>
+                    <input type="email" id="regEmail" placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label>🔐 Mot de passe</label>
+                    <input type="password" id="regPassword" placeholder="password">
+                </div>
+                <button class="btn" onclick="handleRegister()">S'inscrire</button>
+                <button class="btn secondary" onclick="showLoginForm()" style="margin-top:10px;">Retour</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="app-wrapper" id="appWrapper" style="display:none;">
+        <div class="sidebar">
+            <div class="sidebar-header">💰 Budget</div>
+            <div class="nav-menu">
+                <div class="nav-item active" onclick="switchScreen('dashboard')"><div class="nav-icon">📊</div><div>Tableau de bord</div></div>
+                <div class="nav-item" onclick="switchScreen('accounts')"><div class="nav-icon">🏦</div><div>Comptes</div></div>
+                <div class="nav-item" onclick="switchScreen('transactions')"><div class="nav-icon">💸</div><div>Transactions</div></div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:12px;">
+                <button class="btn danger" onclick="logout()" style="width:100%;font-size:13px;padding:9px;">Déconnexion</button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="topbar">
+                <div class="topbar-title" id="topbarTitle">Tableau de bord</div>
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <div class="sync-indicator" id="syncIndicator">☁️ Synchronisé</div>
+                    <button style="background:var(--bg-secondary);border:none;padding:8px 13px;border-radius:6px;cursor:pointer;color:var(--text-primary);" onclick="toggleTheme()">☀️</button>
+                </div>
+            </div>
+            
+            <div class="content">
+                <div class="screen active" id="dashboard">
+                    <h3 style="margin-bottom:18px;color:var(--text-primary);font-size:16px;">📊 Vue d'ensemble</h3>
+                    <div class="dashboard-grid">
+                        <div class="card success">
+                            <div class="card-title">Revenus</div>
+                            <div class="card-value" id="totalIncome">0€</div>
+                        </div>
+                        <div class="card danger">
+                            <div class="card-title">Dépenses</div>
+                            <div class="card-value" id="totalExpense">0€</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-title">Solde</div>
+                            <div class="card-value" id="totalBalance">0€</div>
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin:25px 0 18px 0;font-size:16px;">🏦 Mes Comptes</h3>
+                    <div class="accounts-grid" id="dashboardAccounts"></div>
+                    
+                    <h3 style="margin:25px 0 18px 0;font-size:16px;">📋 Dernières Transactions</h3>
+                    <div class="transactions-table">
+                        <div class="table-header">
+                            <div>Description</div><div>Catégorie</div><div>Compte</div><div>Montant</div><div>Date</div><div></div>
+                        </div>
+                        <div id="dashboardTransactions"></div>
+                    </div>
+                </div>
+                
+                <div class="screen" id="accounts">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+                        <h2 style="font-size:19px;font-weight:600;">🏦 Mes Comptes</h2>
+                        <button class="btn small" onclick="showAddAccountModal()">➕ Ajouter</button>
+                    </div>
+                    <div class="accounts-grid" id="accountsList"></div>
+                </div>
+                
+                <div class="screen" id="transactions">
+                    <h2 style="margin-bottom:22px;font-size:19px;font-weight:600;">💸 Transactions</h2>
+                    <div class="form-section">
+                        <h3>➕ Ajouter une transaction</h3>
+                        <div class="form-row">
+                            <select id="txAccount"></select>
+                            <select id="txType">
+                                <option value="income">📈 Revenu</option>
+                                <option value="expense">💸 Dépense</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <input type="number" id="txAmount" placeholder="Montant" step="0.01">
+                            <input type="text" id="txDescription" placeholder="Description">
+                        </div>
+                        <div class="form-row">
+                            <input type="date" id="txDate">
+                        </div>
+                        <button class="btn" onclick="addTransaction()" style="width:100%;">Ajouter</button>
+                    </div>
+                    <div class="transactions-table">
+                        <div class="table-header">
+                            <div>Description</div><div>Catégorie</div><div>Compte</div><div>Montant</div><div>Date</div><div></div>
+                        </div>
+                        <div id="transactionsList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="accountModal">
+        <div class="modal-content">
+            <div class="modal-header">➕ Ajouter un compte</div>
+            <div class="modal-input">
+                <label>Nom du compte</label>
+                <input type="text" id="newAccountName" placeholder="Ex: Mon compte courant">
+            </div>
+            <button class="btn" onclick="addAccount()">Ajouter</button>
+            <button class="btn secondary" onclick="closeModal('accountModal')">Fermer</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        // Supabase Config - REMPLACE AVEC TES CREDENTIALS!
+        const SUPABASE_URL = 'https://ieijdwcxqwaktovsuiia.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllaWpkd2N4cXdha3RvdnN1aWlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzY4OTUsImV4cCI6MjA5MzE1Mjg5NX0.yUVtYtUpIMp3TdATj_fb511KcSkHvA8Phq8p6VFrigw';
+        
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let currentUser = null;
+        let accounts = [];
+        let transactions = [];
+        
+        // Login
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) throw error;
+                
+                currentUser = data.user;
+                await loadData();
+                showApp();
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        // Register
+        async function handleRegister() {
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) throw error;
+                
+                currentUser = data.user;
+                await loadData();
+                showApp();
+                alert('✅ Compte créé!');
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        // Load Data from Supabase
+        async function loadData() {
+            if (!currentUser) return;
+            
+            try {
+                const { data: accsData } = await supabase
+                    .from('accounts')
+                    .select('*')
+                    .eq('user_id', currentUser.id);
+                
+                const { data: txsData } = await supabase
+                    .from('transactions')
+                    .select('*')
+                    .eq('user_id', currentUser.id);
+                
+                accounts = accsData || [];
+                transactions = txsData || [];
+                
+                updateAllUI();
+                subscribeToChanges();
+            } catch (error) {
+                console.error('Erreur chargement:', error);
+            }
+        }
+        
+        // Subscribe to realtime changes
+        function subscribeToChanges() {
+            if (!currentUser) return;
+            
+            supabase
+                .channel(`accounts:${currentUser.id}`)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'accounts', filter: `user_id=eq.${currentUser.id}` }, (payload) => {
+                    loadData();
+                })
+                .subscribe();
+            
+            supabase
+                .channel(`transactions:${currentUser.id}`)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${currentUser.id}` }, (payload) => {
+                    loadData();
+                })
+                .subscribe();
+        }
+        
+        // Add Account
+        async function addAccount() {
+            const name = document.getElementById('newAccountName').value.trim();
+            if (!name) { alert('⚠️ Entrez un nom'); return; }
+            
+            try {
+                const { error } = await supabase
+                    .from('accounts')
+                    .insert([{
+                        user_id: currentUser.id,
+                        name: name,
+                        balance: 0
+                    }]);
+                
+                if (error) throw error;
+                
+                await loadData();
+                closeModal('accountModal');
+                alert('✅ Compte créé!');
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        // Add Transaction
+        async function addTransaction() {
+            const accountName = document.getElementById('txAccount').value;
+            const type = document.getElementById('txType').value;
+            const amount = parseFloat(document.getElementById('txAmount').value);
+            const description = document.getElementById('txDescription').value;
+            const date = document.getElementById('txDate').value;
+            
+            if (!amount || !accountName) { alert('⚠️ Données invalides'); return; }
+            
+            const account = accounts.find(a => a.name === accountName);
+            if (!account) return;
+            
+            try {
+                const newBalance = type === 'income' ? account.balance + amount : account.balance - amount;
+                
+                await supabase
+                    .from('accounts')
+                    .update({ balance: newBalance })
+                    .eq('id', account.id);
+                
+                await supabase
+                    .from('transactions')
+                    .insert([{
+                        user_id: currentUser.id,
+                        account_id: account.id,
+                        type: type,
+                        amount: amount,
+                        description: description || 'Transaction',
+                        date: date || new Date().toISOString().split('T')[0]
+                    }]);
+                
+                document.getElementById('txAmount').value = '';
+                document.getElementById('txDescription').value = '';
+                
+                await loadData();
+                alert('✅ Ajoutée!');
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        // Delete Transaction
+        async function deleteTransaction(id) {
+            if (confirm('🗑️ Supprimer?')) {
+                try {
+                    const tx = transactions.find(t => t.id === id);
+                    const account = accounts.find(a => a.id === tx.account_id);
+                    
+                    if (tx && account) {
+                        const newBalance = tx.type === 'income' ? account.balance - tx.amount : account.balance + tx.amount;
+                        await supabase.from('accounts').update({ balance: newBalance }).eq('id', account.id);
+                    }
+                    
+                    await supabase.from('transactions').delete().eq('id', id);
+                    await loadData();
+                    alert('✅ Supprimée');
+                } catch (error) {
+                    alert('❌ Erreur: ' + error.message);
+                }
+            }
+        }
+        
+        // Update UI
+        function updateAllUI() {
+            let income = 0, expense = 0;
+            transactions.forEach(tx => {
+                if (tx.type === 'income') income += tx.amount;
+                else expense += tx.amount;
+            });
+            
+            document.getElementById('totalIncome').textContent = income.toFixed(2) + '€';
+            document.getElementById('totalExpense').textContent = expense.toFixed(2) + '€';
+            document.getElementById('totalBalance').textContent = (income - expense).toFixed(2) + '€';
+            
+            document.getElementById('dashboardAccounts').innerHTML = accounts.map(acc => `
+                <div class="account-card">
+                    <div class="account-name">${acc.name}</div>
+                    <div class="account-balance">${(acc.balance || 0).toFixed(2)}€</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('accountsList').innerHTML = accounts.map(acc => `
+                <div class="account-card">
+                    <div class="account-name">${acc.name}</div>
+                    <div class="account-balance" style="font-size:26px;margin:13px 0;">${(acc.balance || 0).toFixed(2)}€</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('dashboardTransactions').innerHTML = transactions.slice(-8).reverse().map(tx => `
+                <div class="table-row">
+                    <div>${tx.description}</div>
+                    <div style="font-size:13px;">${tx.type}</div>
+                    <div style="font-size:13px;">${accounts.find(a => a.id === tx.account_id)?.name || 'N/A'}</div>
+                    <div class="tx-amount ${tx.type === 'income' ? 'income' : 'expense'}">${tx.type === 'income' ? '+' : '-'}${tx.amount.toFixed(2)}€</div>
+                    <div style="font-size:13px;">${tx.date}</div>
+                    <button class="tx-delete-btn" onclick="deleteTransaction(${tx.id})">✕</button>
+                </div>
+            `).join('');
+            
+            document.getElementById('transactionsList').innerHTML = transactions.map(tx => `
+                <div class="table-row">
+                    <div>${tx.description}</div>
+                    <div style="font-size:13px;">${tx.type}</div>
+                    <div style="font-size:13px;">${accounts.find(a => a.id === tx.account_id)?.name || 'N/A'}</div>
+                    <div class="tx-amount ${tx.type === 'income' ? 'income' : 'expense'}">${tx.type === 'income' ? '+' : '-'}${tx.amount.toFixed(2)}€</div>
+                    <div style="font-size:13px;">${tx.date}</div>
+                    <button class="tx-delete-btn" onclick="deleteTransaction(${tx.id})">✕</button>
+                </div>
+            `).join('');
+            
+            const options = accounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+            document.getElementById('txAccount').innerHTML = options;
+            
+            document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+        }
+        
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            const titles = { dashboard: 'Tableau de bord', accounts: 'Mes Comptes', transactions: 'Transactions' };
+            document.getElementById('topbarTitle').textContent = titles[screenId];
+        }
+        
+        function showApp() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('appWrapper').style.display = 'flex';
+        }
+        
+        async function logout() {
+            await supabase.auth.signOut();
+            currentUser = null;
+            accounts = [];
+            transactions = [];
+            document.getElementById('loginContainer').style.display = 'flex';
+            document.getElementById('appWrapper').style.display = 'none';
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+        
+        function showLoginForm() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+        }
+        
+        function showRegisterForm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+        
+        function showAddAccountModal() {
+            document.getElementById('newAccountName').value = '';
+            document.getElementById('accountModal').classList.add('active');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+        
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+        }
+        
+        // Check if logged in
+        supabase.auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                await loadData();
+                showApp();
+            }
+        });
+        
+        document.addEventListener('click', e => {
+            if (e.target === document.getElementById('accountModal')) {
+                closeModal('accountModal');
+            }
+        });
+    </script>
+</body>
+</html>
