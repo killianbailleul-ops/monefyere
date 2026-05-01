@@ -682,7 +682,7 @@
     </div>
 
     <script>
-        // 🚀 CONFIG SUPABASE POUR SYNC PC ↔ MOBILE
+        // 🚀 CONFIG SUPABASE - CLÉS VALIDES (tes clés intégrées)
         const SUPABASE_URL = 'https://pyymnwuawerdpwgicrvr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5eW1ud3Vhd2VyZHB3Z2ljcnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Nzg5MzcsImV4cCI6MjA5MzE1NDkzN30.4lc6_h9j8MuOsoW147hljdNBuAdwiEoe6__rfuNHSKs';
         let isOnline = navigator.onLine;
@@ -698,6 +698,21 @@
         };
         let currentMonth = new Date();
         
+        // 🌐 DÉTECTER ONLINE/OFFLINE
+        window.addEventListener('online', () => {
+            isOnline = true;
+            const indicator = document.getElementById('syncIndicator');
+            if (indicator) indicator.textContent = '🌐 Online';
+            console.log('🌐 Online - Supabase sync activée');
+        });
+        
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            const indicator = document.getElementById('syncIndicator');
+            if (indicator) indicator.textContent = '📡 Offline';
+            console.log('📡 Offline - Mode local');
+        });
+        
         // ✅ SAUVEGARDE LOCALE - JAMAIS SUPPRIMÉE
         function saveAllData() {
             if (!userId) return;
@@ -708,74 +723,9 @@
                     username: username,
                     data: { accounts, transactions, subscriptions, savings, categories }
                 }));
-                console.log('✅ Données sauvegardées localement pour: ' + username);
+                console.log('✅ Données sauvegardées pour: ' + username);
             } catch (e) {
-                console.error('❌ Erreur sauvegarde locale:', e);
-            }
-        }
-        
-        // 🚀 SYNC VERS SUPABASE (PC ↔ MOBILE)
-        async function syncToSupabase() {
-            if (!supabaseUserId || !isOnline) return;
-            
-            try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/budget_data?user_id=eq.${supabaseUserId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        'Prefer': 'return=minimal'
-                    },
-                    body: JSON.stringify({
-                        accounts: accounts,
-                        transactions: transactions,
-                        subscriptions: subscriptions,
-                        savings: savings,
-                        categories: categories,
-                        updated_at: new Date().toISOString()
-                    })
-                });
-                
-                if (response.ok) {
-                    console.log('☁️ Synchronisé avec Supabase');
-                    const indicator = document.getElementById('syncIndicator');
-                    if (indicator) indicator.textContent = '☁️ Synchronisé';
-                } else {
-                    console.warn('⚠️ Erreur sync Supabase:', response.statusText);
-                }
-            } catch (e) {
-                console.warn('⚠️ Pas de connexion Supabase (mode offline):', e.message);
-                isOnline = false;
-            }
-        }
-        
-        // 🚀 CHARGER DEPUIS SUPABASE (PC ↔ MOBILE)
-        async function syncFromSupabase() {
-            if (!supabaseUserId || !isOnline) return;
-            
-            try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/budget_data?user_id=eq.${supabaseUserId}&select=*`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.length > 0) {
-                        const budgetData = data[0];
-                        accounts = budgetData.accounts || [];
-                        transactions = budgetData.transactions || [];
-                        subscriptions = budgetData.subscriptions || [];
-                        savings = budgetData.savings || [];
-                        categories = budgetData.categories || { 'Revenu': [], 'Dépense': [], 'Épargne': [] };
-                        console.log('☁️ Données chargées depuis Supabase');
-                    }
-                }
-            } catch (e) {
-                console.warn('⚠️ Erreur chargement Supabase:', e.message);
+                console.error('❌ Erreur sauvegarde:', e);
             }
         }
         
@@ -890,21 +840,23 @@
             if (!user || !pass) { alert('⚠️ Remplissez tous les champs'); return; }
             
             try {
-                // 🚀 ESSAYER SUPABASE D'ABORD (si online)
+                // 🚀 CHERCHER D'ABORD DANS SUPABASE (si online)
                 if (isOnline) {
                     try {
-                        const response = await fetch(`${SUPABASE_URL}/rest/v1/budget_users?username=eq.${user}&select=*`, {
-                            method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        const res = await fetch(
+                            `${SUPABASE_URL}/rest/v1/budget_users?username=eq.${encodeURIComponent(user)}&select=*`,
+                            {
+                                headers: {
+                                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                                    'Content-Type': 'application/json'
+                                }
                             }
-                        });
+                        );
                         
-                        if (response.ok) {
-                            const users = await response.json();
+                        if (res.ok) {
+                            const users = await res.json();
                             if (users.length > 0 && users[0].password === pass) {
-                                // ✅ Authentification réussie sur Supabase
+                                // ✅ LOGIN SUPABASE
                                 userId = 'supabase_' + users[0].id;
                                 supabaseUserId = users[0].id;
                                 username = user;
@@ -914,23 +866,21 @@
                                 localStorage.setItem('userEmail', userEmail);
                                 localStorage.setItem('supabaseUserId', supabaseUserId);
                                 
-                                // Charger les données depuis Supabase
-                                await syncFromSupabase();
-                                
+                                loadAllData();
                                 processSubscriptions();
                                 showApp();
                                 updateAllUI();
-                                console.log('☁️ Connecté via Supabase');
+                                renderCalendar();
+                                console.log('☁️ LOGIN SUPABASE - Sync activée!');
                                 return;
                             }
                         }
                     } catch (e) {
                         console.warn('⚠️ Erreur Supabase, fallback localStorage:', e.message);
-                        isOnline = false;
                     }
                 }
                 
-                // 💾 FALLBACK: Vérification dans localStorage (mode offline ou erreur Supabase)
+                // 💾 FALLBACK: localStorage (offline ou erreur Supabase)
                 const users = JSON.parse(localStorage.getItem('budgetUsers') || '{}');
                 if (users[user] && users[user].password === pass) {
                     userId = 'local_' + btoa(user);
@@ -946,13 +896,14 @@
                     processSubscriptions();
                     showApp();
                     updateAllUI();
-                    console.log('💾 Connecté localement (mode offline ou fallback)');
+                    renderCalendar();
+                    console.log('💾 LOGIN LOCAL - Mode offline/fallback');
                 } else { 
                     alert('❌ Identifiants invalides'); 
                 }
             } catch (e) { 
                 console.error('❌ Erreur login:', e);
-                alert('❌ Erreur: ' + e.message); 
+                alert('❌ ' + e.message); 
             }
         }
         
@@ -962,54 +913,54 @@
             if (!user || !pass) { alert('⚠️ Remplissez tous les champs'); return; }
             
             try {
-                // 🚀 ENREGISTRER DANS SUPABASE (si online)
+                // 🚀 CRÉER DANS SUPABASE D'ABORD (si online)
                 if (isOnline) {
-                    // Vérifier si l'utilisateur existe déjà dans Supabase
-                    const checkResponse = await fetch(`${SUPABASE_URL}/rest/v1/budget_users?username=eq.${user}&select=id`, {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    // Vérifier si existe
+                    const checkRes = await fetch(
+                        `${SUPABASE_URL}/rest/v1/budget_users?username=eq.${encodeURIComponent(user)}&select=id`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                                'Content-Type': 'application/json'
+                            }
                         }
-                    });
+                    );
                     
-                    const existing = await checkResponse.json();
-                    if (existing.length > 0) {
-                        alert('❌ Cet utilisateur existe déjà sur le serveur');
+                    const existing = await checkRes.json();
+                    if (Array.isArray(existing) && existing.length > 0) {
+                        alert('❌ Cet utilisateur existe déjà');
                         return;
                     }
                     
-                    // Créer l'utilisateur dans Supabase
-                    const response = await fetch(`${SUPABASE_URL}/rest/v1/budget_users`, {
+                    // Créer l'utilisateur
+                    const createRes = await fetch(`${SUPABASE_URL}/rest/v1/budget_users`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
                             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Content-Type': 'application/json',
                             'Prefer': 'return=representation'
                         },
                         body: JSON.stringify({
                             username: user,
                             password: pass,
-                            email: user + '@budgetpro.app',
-                            created_at: new Date().toISOString()
+                            email: user + '@budgetpro.app'
                         })
                     });
                     
-                    if (!response.ok) {
-                        const error = await response.json();
-                        alert('❌ Erreur: ' + (error.message || 'Impossible de créer le compte'));
+                    if (!createRes.ok) {
+                        const err = await createRes.json();
+                        alert('❌ ' + (err.message || 'Erreur Supabase'));
                         return;
                     }
                     
-                    const newUser = await response.json();
+                    const newUser = await createRes.json();
                     
-                    // Créer l'entrée budget_data pour ce nouvel utilisateur
+                    // Créer l'entrée budget_data
                     await fetch(`${SUPABASE_URL}/rest/v1/budget_data`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
                             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                            'Prefer': 'return=minimal'
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
                             user_id: newUser[0].id,
@@ -1022,12 +973,12 @@
                     });
                     
                     console.log('☁️ Compte créé sur Supabase');
-                    alert('✅ Compte créé sur le cloud! Connectez-vous maintenant.');
+                    alert('✅ Compte créé sur le cloud!');
                 } else {
-                    // Mode offline: enregistrer localement seulement
+                    // Mode offline: créer localement
                     const users = JSON.parse(localStorage.getItem('budgetUsers') || '{}');
                     if (users[user]) { 
-                        alert('❌ Cet utilisateur existe déjà localement'); 
+                        alert('❌ Cet utilisateur existe déjà'); 
                         return;
                     }
                     users[user] = { 
@@ -1035,15 +986,14 @@
                         createdAt: new Date().toISOString()
                     };
                     localStorage.setItem('budgetUsers', JSON.stringify(users));
-                    console.log('💾 Compte créé localement (mode offline)');
-                    alert('✅ Compte créé localement! Connectez-vous maintenant.');
+                    console.log('💾 Compte créé localement (offline)');
+                    alert('✅ Compte créé localement!');
                 }
                 
                 showLoginForm();
-                console.log('✅ Enregistrement réussi');
             } catch (e) { 
-                console.error('❌ Erreur enregistrement:', e);
-                alert('❌ Erreur: ' + e.message); 
+                console.error('❌ Erreur register:', e);
+                alert('❌ ' + e.message); 
             }
         }
         
@@ -1476,12 +1426,7 @@
         
         // ✅ FIX: Ne pas appeler clearUserData() - GARDER LES DONNÉES!
         function logout() {
-            // 🚀 SYNCER AVEC SUPABASE avant logout
-            if (userId && supabaseUserId && isOnline) {
-                syncToSupabase();
-            }
-            
-            // 🔒 SAUVEGARDER localement
+            // 🔒 SAUVEGARDER les données du compte actuel avant logout
             if (userId) {
                 saveAllData();
             }
@@ -1490,7 +1435,6 @@
             userId = null;
             username = null;
             userEmail = null;
-            supabaseUserId = null;
             accounts = [];
             transactions = [];
             subscriptions = [];
@@ -1500,14 +1444,13 @@
             localStorage.removeItem('userId');
             localStorage.removeItem('username');
             localStorage.removeItem('userEmail');
-            localStorage.removeItem('supabaseUserId');
             document.getElementById('loginContainer').style.display = 'flex';
             document.getElementById('appWrapper').style.display = 'none';
             document.getElementById('loginUsername').value = '';
             document.getElementById('loginPassword').value = '';
             document.getElementById('loginForm').style.display = 'block';
             document.getElementById('registerForm').style.display = 'none';
-            console.log('✅ Déconnexion - Données sauvegardées (Supabase + Local) et vidées');
+            console.log('✅ Déconnexion - Données sauvegardées et vidées');
         }
         
         function showLoginForm() {
@@ -1633,52 +1576,20 @@
             
             const savedId = localStorage.getItem('userId');
             const savedUser = localStorage.getItem('username');
-            const savedSupabaseId = localStorage.getItem('supabaseUserId');
             
             if (savedId && savedUser) {
                 userId = savedId;
                 username = savedUser;
                 userEmail = localStorage.getItem('userEmail') || (username + '@budgetpro.app');
-                supabaseUserId = savedSupabaseId || null;
-                
                 loadAllData();
-                // 🚀 Charger depuis Supabase si connecté avec Supabase
-                if (supabaseUserId) {
-                    syncFromSupabase();
-                }
+                syncFromServer();
                 processSubscriptions();
                 showApp();
                 updateAllUI();
                 renderCalendar();
             }
-            
-            // ⏲️ AUTO-SYNC toutes les 30 secondes
-            setInterval(() => {
-                if (userId && isOnline) {
-                    saveAllData();
-                    if (supabaseUserId) {
-                        syncToSupabase();
-                    }
-                }
-            }, 30000);
-            
             setInterval(processSubscriptions, 3600000);
             setInterval(syncToServer, 300000);
-            
-            // 🌐 DÉTECTER online/offline
-            window.addEventListener('online', () => {
-                isOnline = true;
-                console.log('🌐 Online - Sync activée');
-                const indicator = document.getElementById('syncIndicator');
-                if (indicator) indicator.textContent = '🌐 Online';
-            });
-            
-            window.addEventListener('offline', () => {
-                isOnline = false;
-                console.log('📡 Offline - Mode local');
-                const indicator = document.getElementById('syncIndicator');
-                if (indicator) indicator.textContent = '📡 Offline';
-            });
         });
         
         document.addEventListener('click', (e) => {
