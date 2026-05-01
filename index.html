@@ -682,14 +682,13 @@
     </div>
 
     <script>
-        // 🚀 CONFIG SUPABASE - CLÉS VALIDES (tes clés intégrées)
-        const SUPABASE_URL = 'https://pyymnwuawerdpwgicrvr.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5eW1ud3Vhd2VyZHB3Z2ljcnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Nzg5MzcsImV4cCI6MjA5MzE1NDkzN30.4lc6_h9j8MuOsoW147hljdNBuAdwiEoe6__rfuNHSKs';
-        let isOnline = navigator.onLine;
+        // 🔥 FIREBASE REST API CONFIG - RÉACTIVÉ!
+        const FIREBASE_URL = 'https://monefyer-default-rtdb.europe-west1.firebasedatabase.app';
+        let firebaseSyncTimer = null;
         
-        // ✅ Todos los llamadas servidor removidas - Uso localStorage solamente
-        const API_URL = null; // Desactivado - Utilizar localStorage
-        let userId = null, username = null, userEmail = null, supabaseUserId = null;
+        // ✅ localStorage + Firebase SYNC!
+        const API_URL = null;
+        let userId = null, username = null, userEmail = null;
         let accounts = [], transactions = [], subscriptions = [], savings = [];
         let categories = {
             'Revenu': ['Salaire', 'Freelance', 'Bonus'],
@@ -698,38 +697,38 @@
         };
         let currentMonth = new Date();
         
-        // 🌐 DÉTECTER ONLINE/OFFLINE
-        window.addEventListener('online', () => {
-            isOnline = true;
-            const indicator = document.getElementById('syncIndicator');
-            if (indicator) indicator.textContent = '🌐 Online';
-            console.log('🌐 Online - Supabase sync activée');
-        });
-        
-        window.addEventListener('offline', () => {
-            isOnline = false;
-            const indicator = document.getElementById('syncIndicator');
-            if (indicator) indicator.textContent = '📡 Offline';
-            console.log('📡 Offline - Mode local');
-        });
-        
-        // ✅ SAUVEGARDE LOCALE - JAMAIS SUPPRIMÉE
+        // ✅ SAUVEGARDE LOCALE + FIREBASE SYNC
         function saveAllData() {
             if (!userId) return;
-            // 🔒 UTILISER le même format que loadAllData pour cohérence
             try {
-                localStorage.setItem(`budget_${userId}`, JSON.stringify({
+                const dataToSave = {
                     userId: userId,
                     username: username,
                     data: { accounts, transactions, subscriptions, savings, categories }
-                }));
-                console.log('✅ Données sauvegardées pour: ' + username);
+                };
+                
+                // 💾 Sauvegarder localement
+                localStorage.setItem(`budget_${userId}`, JSON.stringify(dataToSave));
+                console.log('✅ Données sauvegardées localement');
+                
+                // 🔥 Sauvegarder sur Firebase
+                if (username && FIREBASE_URL) {
+                    fetch(`${FIREBASE_URL}/users/${username}/data.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(dataToSave.data)
+                    }).then(() => {
+                        console.log('🔥 Sync Firebase OK - PC ↔ Mobile');
+                    }).catch(e => {
+                        console.warn('⚠️ Firebase sync error:', e);
+                    });
+                }
             } catch (e) {
                 console.error('❌ Erreur sauvegarde:', e);
             }
         }
         
-        // ✅ CHARGEMENT LOCAL
+        // ✅ CHARGEMENT LOCAL + FIREBASE LISTENER
         function loadAllData() {
             if (!userId) return;
             
@@ -756,6 +755,36 @@
                 }
             } catch (e) {
                 console.error('❌ Erreur chargement:', e);
+            }
+            
+            // 🔥 FIREBASE SYNC LISTENER - Toutes les 5 secondes
+            if (firebaseSyncTimer) clearInterval(firebaseSyncTimer);
+            if (username && FIREBASE_URL) {
+                firebaseSyncTimer = setInterval(() => {
+                    fetch(`${FIREBASE_URL}/users/${username}/data.json`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data) {
+                                const fbAccounts = data.accounts || [];
+                                const fbTransactions = data.transactions || [];
+                                const fbSubscriptions = data.subscriptions || [];
+                                const fbSavings = data.savings || [];
+                                const fbCategories = data.categories || { 'Revenu': [], 'Dépense': [], 'Épargne': [] };
+                                
+                                // Vérifier si les données ont changé
+                                if (JSON.stringify(fbAccounts) !== JSON.stringify(accounts)) {
+                                    accounts = fbAccounts;
+                                    transactions = fbTransactions;
+                                    subscriptions = fbSubscriptions;
+                                    savings = fbSavings;
+                                    categories = fbCategories;
+                                    console.log('🔥 SYNC FIREBASE - Données mises à jour depuis autre appareil!');
+                                    updateAllUI();
+                                }
+                            }
+                        })
+                        .catch(e => console.warn('⚠️ Firebase listener error:', e));
+                }, 5000);
             }
         }
         
@@ -840,160 +869,84 @@
             if (!user || !pass) { alert('⚠️ Remplissez tous les champs'); return; }
             
             try {
-                // 🚀 CHERCHER D'ABORD DANS SUPABASE (si online)
-                if (isOnline) {
-                    try {
-                        const res = await fetch(
-                            `${SUPABASE_URL}/rest/v1/budget_users?username=eq.${encodeURIComponent(user)}&select=*`,
-                            {
-                                headers: {
-                                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                                    'Content-Type': 'application/json'
-                                }
-                            }
-                        );
-                        
-                        if (res.ok) {
-                            const users = await res.json();
-                            if (users.length > 0 && users[0].password === pass) {
-                                // ✅ LOGIN SUPABASE
-                                userId = 'supabase_' + users[0].id;
-                                supabaseUserId = users[0].id;
-                                username = user;
-                                userEmail = users[0].email || user + '@budgetpro.app';
-                                localStorage.setItem('userId', userId);
-                                localStorage.setItem('username', username);
-                                localStorage.setItem('userEmail', userEmail);
-                                localStorage.setItem('supabaseUserId', supabaseUserId);
-                                
-                                loadAllData();
-                                processSubscriptions();
-                                showApp();
-                                updateAllUI();
-                                renderCalendar();
-                                console.log('☁️ LOGIN SUPABASE - Sync activée!');
-                                return;
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('⚠️ Erreur Supabase, fallback localStorage:', e.message);
-                    }
+                // 🔥 Vérifier dans Firebase
+                const res = await fetch(`${FIREBASE_URL}/users/${user}.json`);
+                const userData = await res.json();
+                
+                if (!userData || !userData.password) {
+                    alert('❌ Utilisateur non trouvé');
+                    return;
                 }
                 
-                // 💾 FALLBACK: localStorage (offline ou erreur Supabase)
-                const users = JSON.parse(localStorage.getItem('budgetUsers') || '{}');
-                if (users[user] && users[user].password === pass) {
-                    userId = 'local_' + btoa(user);
-                    supabaseUserId = null;
-                    username = user;
-                    userEmail = user + '@budgetpro.app';
-                    localStorage.setItem('userId', userId);
-                    localStorage.setItem('username', username);
-                    localStorage.setItem('userEmail', userEmail);
-                    localStorage.removeItem('supabaseUserId');
-                    
-                    loadAllData();
-                    processSubscriptions();
-                    showApp();
-                    updateAllUI();
-                    renderCalendar();
-                    console.log('💾 LOGIN LOCAL - Mode offline/fallback');
-                } else { 
-                    alert('❌ Identifiants invalides'); 
+                if (userData.password !== pass) {
+                    alert('❌ Mot de passe incorrect');
+                    return;
                 }
+                
+                // ✅ Login réussi
+                userId = 'firebase_' + btoa(user);
+                username = user;
+                userEmail = user + '@budgetpro.app';
+                localStorage.setItem('userId', userId);
+                localStorage.setItem('username', username);
+                localStorage.setItem('userEmail', userEmail);
+                
+                loadAllData();
+                processSubscriptions();
+                showApp();
+                updateAllUI();
+                console.log('🔥 LOGIN FIREBASE - SYNC PC ↔ MOBILE ACTIVÉE!');
             } catch (e) { 
-                console.error('❌ Erreur login:', e);
-                alert('❌ ' + e.message); 
+                alert('❌ Erreur: ' + e.message); 
+                console.error('Login error:', e);
             }
         }
         
         async function handleRegister() {
-            const user = document.getElementById('regUsername').value.trim();
-            const pass = document.getElementById('regPassword').value.trim();
-            if (!user || !pass) { alert('⚠️ Remplissez tous les champs'); return; }
+            const userInput = document.getElementById('regUsername');
+            const passInput = document.getElementById('regPassword');
+            
+            const user = userInput.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+            const pass = passInput.value.trim();
+            
+            console.log('Création compte Firebase:', user);
+            
+            if (!user || !pass) { alert('⚠️ Remplissez tous les champs correctement'); return; }
             
             try {
-                // 🚀 CRÉER DANS SUPABASE D'ABORD (si online)
-                if (isOnline) {
-                    // Vérifier si existe
-                    const checkRes = await fetch(
-                        `${SUPABASE_URL}/rest/v1/budget_users?username=eq.${encodeURIComponent(user)}&select=id`,
-                        {
-                            headers: {
-                                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                                'Content-Type': 'application/json'
-                            }
-                        }
-                    );
-                    
-                    const existing = await checkRes.json();
-                    if (Array.isArray(existing) && existing.length > 0) {
-                        alert('❌ Cet utilisateur existe déjà');
-                        return;
-                    }
-                    
-                    // Créer l'utilisateur
-                    const createRes = await fetch(`${SUPABASE_URL}/rest/v1/budget_users`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=representation'
-                        },
-                        body: JSON.stringify({
-                            username: user,
-                            password: pass,
-                            email: user + '@budgetpro.app'
-                        })
-                    });
-                    
-                    if (!createRes.ok) {
-                        const err = await createRes.json();
-                        alert('❌ ' + (err.message || 'Erreur Supabase'));
-                        return;
-                    }
-                    
-                    const newUser = await createRes.json();
-                    
-                    // Créer l'entrée budget_data
-                    await fetch(`${SUPABASE_URL}/rest/v1/budget_data`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            user_id: newUser[0].id,
-                            accounts: [],
-                            transactions: [],
-                            subscriptions: [],
-                            savings: [],
-                            categories: { 'Revenu': [], 'Dépense': [], 'Épargne': [] }
-                        })
-                    });
-                    
-                    console.log('☁️ Compte créé sur Supabase');
-                    alert('✅ Compte créé sur le cloud!');
-                } else {
-                    // Mode offline: créer localement
-                    const users = JSON.parse(localStorage.getItem('budgetUsers') || '{}');
-                    if (users[user]) { 
-                        alert('❌ Cet utilisateur existe déjà'); 
-                        return;
-                    }
-                    users[user] = { 
-                        password: pass,
-                        createdAt: new Date().toISOString()
-                    };
-                    localStorage.setItem('budgetUsers', JSON.stringify(users));
-                    console.log('💾 Compte créé localement (offline)');
-                    alert('✅ Compte créé localement!');
+                // 🔥 Vérifier si l'utilisateur existe dans Firebase
+                const res = await fetch(`${FIREBASE_URL}/users/${user}.json`);
+                const existing = await res.json();
+                
+                console.log('User exists check:', existing);
+                
+                if (existing !== null && existing.password) {
+                    alert('❌ Cet utilisateur existe déjà');
+                    return;
                 }
                 
+                // 🔥 Créer l'utilisateur dans Firebase
+                const createRes = await fetch(`${FIREBASE_URL}/users/${user}.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        password: pass,
+                        email: user + '@budgetpro.app',
+                        createdAt: new Date().toISOString(),
+                        data: { accounts: [], transactions: [], subscriptions: [], savings: [], categories: {} }
+                    })
+                });
+                
+                if (!createRes.ok) throw new Error('Erreur Firebase: ' + createRes.status);
+                
+                alert('✅ Compte créé sur Firebase! Connectez-vous maintenant.');
+                userInput.value = '';
+                passInput.value = '';
                 showLoginForm();
+                console.log('🔥 Compte créé sur Firebase: ' + user);
             } catch (e) { 
-                console.error('❌ Erreur register:', e);
-                alert('❌ ' + e.message); 
+                alert('❌ Erreur: ' + e.message);
+                console.error('Register error:', e);
             }
         }
         
@@ -1431,6 +1384,12 @@
                 saveAllData();
             }
             
+            // 🔥 Arrêter le Firebase listener
+            if (firebaseSyncTimer) {
+                clearInterval(firebaseSyncTimer);
+                firebaseSyncTimer = null;
+            }
+            
             // 🔒 RÉINITIALISER toutes les variables globales
             userId = null;
             username = null;
@@ -1450,7 +1409,7 @@
             document.getElementById('loginPassword').value = '';
             document.getElementById('loginForm').style.display = 'block';
             document.getElementById('registerForm').style.display = 'none';
-            console.log('✅ Déconnexion - Données sauvegardées et vidées');
+            console.log('✅ Déconnexion - Données sauvegardées et listener Firebase arrêté');
         }
         
         function showLoginForm() {
