@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💰 Budget Pro - Supabase</title>
+    <title>💰 Budget Pro</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -91,6 +91,9 @@
             border-radius: 4px;
             background: var(--bg-secondary);
             color: var(--success);
+        }
+        .sync-indicator.syncing {
+            color: var(--warning);
         }
         .content {
             flex: 1;
@@ -232,6 +235,7 @@
         }
         .tx-amount.income { color: var(--success); font-weight: 600; }
         .tx-amount.expense { color: var(--danger); font-weight: 600; }
+        .tx-amount.transfer { color: var(--text-secondary); font-weight: 600; }
         .tx-delete-btn {
             background: var(--danger);
             color: white;
@@ -277,13 +281,103 @@
             color: var(--text-primary);
             font-size: 14px;
         }
+        .subscription-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .savings-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 7px;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 9px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.3s;
+        }
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 9px;
+            margin-bottom: 12px;
+        }
+        .calendar-weekday {
+            text-align: center;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 9px 0;
+        }
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 9px;
+        }
+        .calendar-day {
+            background: var(--bg-secondary);
+            padding: 9px 7px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 75px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow: hidden;
+        }
+        .calendar-day:hover { background: var(--primary); color: white; }
+        .calendar-day.other-month { opacity: 0.2; }
+        .calendar-day.today {
+            background: #333;
+            color: var(--text-secondary);
+            border: 1px solid var(--primary);
+        }
+        .calendar-day-date { font-weight: 600; margin-bottom: 2px; padding: 2px 0; }
+        .calendar-item {
+            font-size: 10px;
+            padding: 2px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .calendar-item.income { color: var(--success); }
+        .calendar-item.expense { color: var(--danger); }
+        .calendar-item.subscription { color: var(--warning); }
+        .calendar-item.transfer { color: var(--text-secondary); }
+        @media (max-width: 1024px) {
+            .sidebar { width: 220px; padding: 12px; }
+            .content { padding: 20px; }
+            .topbar { padding: 12px 20px; height: 60px; }
+            .dashboard-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+            .accounts-grid { grid-template-columns: repeat(2, 1fr); }
+            .form-row { grid-template-columns: repeat(2, 1fr); gap: 11px; }
+        }
         @media (max-width: 768px) {
             .app-wrapper { flex-direction: column; }
             .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+            .nav-menu { display: flex; gap: 4px; overflow-x: auto; }
+            .nav-item { flex: 1; justify-content: center; padding: 8px 4px; font-size: 12px; white-space: nowrap; }
+            .nav-icon { margin-right: 0; margin-bottom: 4px; }
             .content { padding: 15px; }
+            .topbar { padding: 12px 15px; }
             .dashboard-grid { grid-template-columns: 1fr; gap: 12px; }
             .accounts-grid { grid-template-columns: repeat(2, 1fr); }
             .table-header, .table-row { grid-template-columns: 1.2fr 1fr 0.8fr 0.8fr 0.6fr 0.4fr; font-size: 12px; gap: 9px; padding: 10px 11px; }
+            .form-row { grid-template-columns: 1fr; gap: 10px; }
         }
     </style>
 </head>
@@ -291,11 +385,11 @@
     <div class="login-container" id="loginContainer">
         <div class="login-card">
             <h1>💰 Budget Pro</h1>
-            <p>Synchronisation Cloud ☁️</p>
+            <p>Gestion financière simple & efficace</p>
             <div id="loginForm">
                 <div class="form-group">
-                    <label>👤 Email</label>
-                    <input type="email" id="loginEmail" placeholder="email@example.com">
+                    <label>👤 Utilisateur</label>
+                    <input type="text" id="loginUsername" placeholder="username">
                 </div>
                 <div class="form-group">
                     <label>🔐 Mot de passe</label>
@@ -307,8 +401,8 @@
             <div id="registerForm" style="display:none;">
                 <h3 style="margin-bottom:18px;color:white;font-size:16px;">Nouvel utilisateur</h3>
                 <div class="form-group">
-                    <label>👤 Email</label>
-                    <input type="email" id="regEmail" placeholder="email@example.com">
+                    <label>👤 Utilisateur</label>
+                    <input type="text" id="regUsername" placeholder="username">
                 </div>
                 <div class="form-group">
                     <label>🔐 Mot de passe</label>
@@ -327,8 +421,16 @@
                 <div class="nav-item active" onclick="switchScreen('dashboard')"><div class="nav-icon">📊</div><div>Tableau de bord</div></div>
                 <div class="nav-item" onclick="switchScreen('accounts')"><div class="nav-icon">🏦</div><div>Comptes</div></div>
                 <div class="nav-item" onclick="switchScreen('transactions')"><div class="nav-icon">💸</div><div>Transactions</div></div>
+                <div class="nav-item" onclick="switchScreen('calendar')"><div class="nav-icon">📅</div><div>Calendrier</div></div>
+                <div class="nav-item" onclick="switchScreen('subscriptions')"><div class="nav-icon">🔄</div><div>Abonnements</div></div>
+                <div class="nav-item" onclick="switchScreen('savings')"><div class="nav-icon">🏦</div><div>Épargne</div></div>
+                <div class="nav-item" onclick="switchScreen('settings')"><div class="nav-icon">⚙️</div><div>Paramètres</div></div>
             </div>
             <div style="border-top:1px solid var(--border);padding-top:12px;">
+                <div style="background:var(--bg-secondary);padding:13px;border-radius:6px;margin-bottom:11px;font-size:14px;text-align:center;">
+                    <div style="font-weight:600;color:var(--text-primary);margin-bottom:5px;" id="sidebarUsername">User</div>
+                    <div style="color:var(--text-secondary);font-size:12px;" id="sidebarEmail">email</div>
+                </div>
                 <button class="btn danger" onclick="logout()" style="width:100%;font-size:13px;padding:9px;">Déconnexion</button>
             </div>
         </div>
@@ -337,7 +439,7 @@
             <div class="topbar">
                 <div class="topbar-title" id="topbarTitle">Tableau de bord</div>
                 <div style="display:flex;gap:12px;align-items:center;">
-                    <div class="sync-indicator" id="syncIndicator">☁️ Synchronisé</div>
+                    <div class="sync-indicator" id="syncIndicator">✅ Données locales</div>
                     <button style="background:var(--bg-secondary);border:none;padding:8px 13px;border-radius:6px;cursor:pointer;color:var(--text-primary);" onclick="toggleTheme()">☀️</button>
                 </div>
             </div>
@@ -375,7 +477,10 @@
                 <div class="screen" id="accounts">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
                         <h2 style="font-size:19px;font-weight:600;">🏦 Mes Comptes</h2>
-                        <button class="btn small" onclick="showAddAccountModal()">➕ Ajouter</button>
+                        <div>
+                            <button class="btn small" onclick="showTransferModal()" style="margin-right:9px;">💳 Transfert</button>
+                            <button class="btn small" onclick="showAddAccountModal()">➕ Ajouter</button>
+                        </div>
                     </div>
                     <div class="accounts-grid" id="accountsList"></div>
                 </div>
@@ -386,17 +491,24 @@
                         <h3>➕ Ajouter une transaction</h3>
                         <div class="form-row">
                             <select id="txAccount"></select>
-                            <select id="txType">
-                                <option value="income">📈 Revenu</option>
-                                <option value="expense">💸 Dépense</option>
+                            <select id="txType" onchange="updateCategoryFilter()">
+                                <option value="Revenu">📈 Revenu</option>
+                                <option value="Dépense">💸 Dépense</option>
+                                <option value="Épargne">🏦 Épargne</option>
                             </select>
                         </div>
                         <div class="form-row">
                             <input type="number" id="txAmount" placeholder="Montant" step="0.01">
-                            <input type="text" id="txDescription" placeholder="Description">
+                            <select id="txCategory"></select>
                         </div>
                         <div class="form-row">
                             <input type="date" id="txDate">
+                            <input type="text" id="txDescription" placeholder="Description">
+                        </div>
+                        <div class="form-row" id="savingsSelectRow" style="display:none;">
+                            <select id="txSavings">
+                                <option value="">Sélectionner une épargne...</option>
+                            </select>
                         </div>
                         <button class="btn" onclick="addTransaction()" style="width:100%;">Ajouter</button>
                     </div>
@@ -407,6 +519,68 @@
                         <div id="transactionsList"></div>
                     </div>
                 </div>
+                
+                <div class="screen" id="calendar">
+                    <h2 style="margin-bottom:22px;font-size:19px;font-weight:600;">📅 Calendrier</h2>
+                    <div style="background:var(--bg-primary);border:1px solid var(--border);padding:22px;border-radius:8px;margin-bottom:30px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+                            <div class="calendar-month" id="calendarMonth" style="font-size:18px;font-weight:600;">Avril 2026</div>
+                            <div style="display:flex;gap:9px;">
+                                <button class="btn small" onclick="previousMonth()">← Précédent</button>
+                                <button class="btn small" onclick="todayMonth()">Aujourd'hui</button>
+                                <button class="btn small" onclick="nextMonth()">Suivant →</button>
+                            </div>
+                        </div>
+                        <div class="calendar-weekdays">
+                            <div class="calendar-weekday">Lun</div>
+                            <div class="calendar-weekday">Mar</div>
+                            <div class="calendar-weekday">Mer</div>
+                            <div class="calendar-weekday">Jeu</div>
+                            <div class="calendar-weekday">Ven</div>
+                            <div class="calendar-weekday">Sam</div>
+                            <div class="calendar-weekday">Dim</div>
+                        </div>
+                        <div class="calendar-days" id="calendarDays"></div>
+                    </div>
+                </div>
+                
+                <div class="screen" id="subscriptions">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+                        <h2 style="font-size:19px;font-weight:600;">🔄 Abonnements</h2>
+                        <button class="btn small" onclick="showAddSubscriptionModal()">➕ Ajouter</button>
+                    </div>
+                    <div id="subscriptionsList"></div>
+                </div>
+                
+                <div class="screen" id="savings">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+                        <h2 style="font-size:19px;font-weight:600;">🏦 Épargnes</h2>
+                        <button class="btn small" onclick="showAddSavingsModal()">➕ Ajouter</button>
+                    </div>
+                    <div id="savingsList"></div>
+                </div>
+                
+                <div class="screen" id="settings">
+                    <h2 style="margin-bottom:22px;font-size:19px;font-weight:600;">⚙️ Paramètres</h2>
+                    <div class="form-section">
+                        <h3>Catégories Revenus</h3>
+                        <div id="incomeCategories" style="margin-bottom:16px;"></div>
+                        <button class="btn secondary" onclick="showAddCategoryModal('Revenu')" style="width:100%;font-size:13px;">➕ Ajouter</button>
+                    </div>
+                    <div class="form-section">
+                        <h3>Catégories Dépenses</h3>
+                        <div id="expenseCategories" style="margin-bottom:16px;"></div>
+                        <button class="btn secondary" onclick="showAddCategoryModal('Dépense')" style="width:100%;font-size:13px;">➕ Ajouter</button>
+                    </div>
+                    <div class="form-section">
+                        <h3>Sécurité du compte</h3>
+                        <button class="btn" onclick="resetPassword()" style="width:100%;margin-bottom:11px;">🔐 Changer le mot de passe</button>
+                    </div>
+                    <div class="form-section" style="border-color:var(--danger);">
+                        <h3 style="color:var(--danger);">⚠️ Zone dangereuse</h3>
+                        <button class="btn danger" onclick="deleteAccount()" style="width:100%;">🗑️ Supprimer mon compte</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -415,209 +589,671 @@
         <div class="modal-content">
             <div class="modal-header">➕ Ajouter un compte</div>
             <div class="modal-input">
-                <label>Nom du compte</label>
-                <input type="text" id="newAccountName" placeholder="Ex: Mon compte courant">
+                <label>Type de compte</label>
+                <select id="newAccountType">
+                    <option value="Courant:🏦">🏦 Courant</option>
+                    <option value="Essence:⛽">⛽ Essence</option>
+                    <option value="Nourriture:🍕">🍕 Nourriture</option>
+                    <option value="Maison:🏠">🏠 Maison</option>
+                    <option value="Transport:🚗">🚗 Transport</option>
+                    <option value="Loisirs:🎮">🎮 Loisirs</option>
+                    <option value="Santé:⚕️">⚕️ Santé</option>
+                </select>
+            </div>
+            <div class="modal-input">
+                <label>Nom personnalisé (optionnel)</label>
+                <input type="text" id="newAccountName" placeholder="Ex: Ma voiture">
             </div>
             <button class="btn" onclick="addAccount()">Ajouter</button>
             <button class="btn secondary" onclick="closeModal('accountModal')">Fermer</button>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
+    <div class="modal" id="transferModal">
+        <div class="modal-content">
+            <div class="modal-header">💳 Transfert entre comptes</div>
+            <div class="modal-input">
+                <label>Compte source (Débité)</label>
+                <select id="transferFrom"></select>
+            </div>
+            <div class="modal-input">
+                <label>Compte destination (Crédité)</label>
+                <select id="transferTo"></select>
+            </div>
+            <div class="modal-input">
+                <label>Montant (€)</label>
+                <input type="number" id="transferAmount" placeholder="100" step="0.01">
+            </div>
+            <div class="modal-input">
+                <label>Date</label>
+                <input type="date" id="transferDate">
+            </div>
+            <button class="btn" onclick="addTransfer()">Effectuer le transfert</button>
+            <button class="btn secondary" onclick="closeModal('transferModal')">Fermer</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="subscriptionModal">
+        <div class="modal-content">
+            <div class="modal-header">📅 Nouvel Abonnement</div>
+            <div class="modal-input"><label>Nom</label><input type="text" id="subName" placeholder="Netflix"></div>
+            <div class="modal-input"><label>Compte</label><select id="subAccount"></select></div>
+            <div class="modal-input"><label>Type</label><select id="subType"><option value="Dépense">💸 Dépense</option><option value="Revenu">📈 Revenu</option></select></div>
+            <div class="modal-input"><label>Montant (€)</label><input type="number" id="subAmount" placeholder="9.99" step="0.01"></div>
+            <div class="modal-input">
+                <label>Récurrence</label>
+                <select id="subFrequency" onchange="toggleDayOfMonth()">
+                    <option value="daily">Chaque jour</option>
+                    <option value="weekly">Chaque semaine</option>
+                    <option value="monthly">Chaque mois</option>
+                    <option value="monthly_day">Le X du mois</option>
+                    <option value="yearly">Chaque année</option>
+                </select>
+            </div>
+            <div class="modal-input" id="dayOfMonthInput" style="display:none;">
+                <label>Quel jour du mois? (1-31)</label>
+                <input type="number" id="subDayOfMonth" min="1" max="31" value="1">
+            </div>
+            <div class="modal-input"><label>Catégorie</label><select id="subCategory"></select></div>
+            <div class="modal-input"><label>Première date</label><input type="date" id="subStartDate"></div>
+            <button class="btn" onclick="addSubscription()">Créer</button>
+            <button class="btn secondary" onclick="closeModal('subscriptionModal')">Fermer</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="savingsModal">
+        <div class="modal-content">
+            <div class="modal-header">💰 Nouvelle épargne</div>
+            <div class="modal-input"><label>Objectif</label><input type="text" id="savingsName" placeholder="Vacances"></div>
+            <div class="modal-input"><label>Montant cible (€)</label><input type="number" id="savingsTarget" placeholder="5000" step="0.01"></div>
+            <div class="modal-input"><label>Montant actuel (€)</label><input type="number" id="savingsCurrent" placeholder="0" step="0.01"></div>
+            <button class="btn" onclick="addSavings()">Créer</button>
+            <button class="btn secondary" onclick="closeModal('savingsModal')">Fermer</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="categoryModal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalCategoryTitle">➕ Ajouter une catégorie</div>
+            <div class="modal-input"><label>Nom</label><input type="text" id="newCategoryName" placeholder="Restaurant"></div>
+            <button class="btn" onclick="addNewCategory()">Ajouter</button>
+            <button class="btn secondary" onclick="closeModal('categoryModal')">Fermer</button>
+        </div>
+    </div>
+
     <script>
-        // Supabase Config - CREDENTIALS FINAUX!
+        // 🚀 CONFIG SUPABASE POUR SYNC PC ↔ MOBILE
         const SUPABASE_URL = 'https://pyymnwuawerdpwgicrvr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5eW1ud3Vhd2VyZHB3Z2ljcnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Nzg5MzcsImV4cCI6MjA5MzE1NDkzN30.4lc6_h9j8MuOsoW147hljdNBuAdwiEoe6__rfuNHSKs';
+        let isOnline = navigator.onLine;
         
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // ✅ Todos los llamadas servidor removidas - Uso localStorage solamente
+        const API_URL = null; // Desactivado - Utilizar localStorage
+        let userId = null, username = null, userEmail = null, supabaseUserId = null;
+        let accounts = [], transactions = [], subscriptions = [], savings = [];
+        let categories = {
+            'Revenu': ['Salaire', 'Freelance', 'Bonus'],
+            'Dépense': ['Alimentation', 'Transport', 'Loisirs', 'Maison', 'Santé'],
+            'Épargne': []
+        };
+        let currentMonth = new Date();
         
-        let currentUser = null;
-        let accounts = [];
-        let transactions = [];
+        // ✅ SAUVEGARDE LOCALE - JAMAIS SUPPRIMÉE
+        function saveAllData() {
+            if (!userId) return;
+            // 🔒 UTILISER le même format que loadAllData pour cohérence
+            try {
+                localStorage.setItem(`budget_${userId}`, JSON.stringify({
+                    userId: userId,
+                    username: username,
+                    data: { accounts, transactions, subscriptions, savings, categories }
+                }));
+                console.log('✅ Données sauvegardées localement pour: ' + username);
+            } catch (e) {
+                console.error('❌ Erreur sauvegarde locale:', e);
+            }
+        }
         
-        // Login
-        async function handleLogin() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
+        // 🚀 SYNC VERS SUPABASE (PC ↔ MOBILE)
+        async function syncToSupabase() {
+            if (!supabaseUserId || !isOnline) return;
             
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/budget_data?user_id=eq.${supabaseUserId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        accounts: accounts,
+                        transactions: transactions,
+                        subscriptions: subscriptions,
+                        savings: savings,
+                        categories: categories,
+                        updated_at: new Date().toISOString()
+                    })
                 });
                 
-                if (error) throw error;
-                
-                currentUser = data.user;
-                await loadData();
-                showApp();
-            } catch (error) {
-                alert('❌ Erreur: ' + error.message);
+                if (response.ok) {
+                    console.log('☁️ Synchronisé avec Supabase');
+                    const indicator = document.getElementById('syncIndicator');
+                    if (indicator) indicator.textContent = '☁️ Synchronisé';
+                } else {
+                    console.warn('⚠️ Erreur sync Supabase:', response.statusText);
+                }
+            } catch (e) {
+                console.warn('⚠️ Pas de connexion Supabase (mode offline):', e.message);
+                isOnline = false;
             }
         }
         
-        // Register
-        async function handleRegister() {
-            const email = document.getElementById('regEmail').value;
-            const password = document.getElementById('regPassword').value;
+        // 🚀 CHARGER DEPUIS SUPABASE (PC ↔ MOBILE)
+        async function syncFromSupabase() {
+            if (!supabaseUserId || !isOnline) return;
             
             try {
-                const { data, error } = await supabase.auth.signUp({
-                    email: email,
-                    password: password
-                });
-                
-                if (error) throw error;
-                
-                currentUser = data.user;
-                await loadData();
-                showApp();
-                alert('✅ Compte créé!');
-            } catch (error) {
-                alert('❌ Erreur: ' + error.message);
-            }
-        }
-        
-        // Load Data from Supabase
-        async function loadData() {
-            if (!currentUser) return;
-            
-            try {
-                const { data: accsData } = await supabase
-                    .from('accounts')
-                    .select('*')
-                    .eq('user_id', currentUser.id);
-                
-                const { data: txsData } = await supabase
-                    .from('transactions')
-                    .select('*')
-                    .eq('user_id', currentUser.id);
-                
-                accounts = accsData || [];
-                transactions = txsData || [];
-                
-                updateAllUI();
-                subscribeToChanges();
-            } catch (error) {
-                console.error('Erreur chargement:', error);
-            }
-        }
-        
-        // Subscribe to realtime changes
-        function subscribeToChanges() {
-            if (!currentUser) return;
-            
-            supabase
-                .channel(`accounts:${currentUser.id}`)
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'accounts', filter: `user_id=eq.${currentUser.id}` }, (payload) => {
-                    loadData();
-                })
-                .subscribe();
-            
-            supabase
-                .channel(`transactions:${currentUser.id}`)
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${currentUser.id}` }, (payload) => {
-                    loadData();
-                })
-                .subscribe();
-        }
-        
-        // Add Account
-        async function addAccount() {
-            const name = document.getElementById('newAccountName').value.trim();
-            if (!name) { alert('⚠️ Entrez un nom'); return; }
-            
-            try {
-                const { error } = await supabase
-                    .from('accounts')
-                    .insert([{
-                        user_id: currentUser.id,
-                        name: name,
-                        balance: 0
-                    }]);
-                
-                if (error) throw error;
-                
-                await loadData();
-                closeModal('accountModal');
-                alert('✅ Compte créé!');
-            } catch (error) {
-                alert('❌ Erreur: ' + error.message);
-            }
-        }
-        
-        // Add Transaction
-        async function addTransaction() {
-            const accountName = document.getElementById('txAccount').value;
-            const type = document.getElementById('txType').value;
-            const amount = parseFloat(document.getElementById('txAmount').value);
-            const description = document.getElementById('txDescription').value;
-            const date = document.getElementById('txDate').value;
-            
-            if (!amount || !accountName) { alert('⚠️ Données invalides'); return; }
-            
-            const account = accounts.find(a => a.name === accountName);
-            if (!account) return;
-            
-            try {
-                const newBalance = type === 'income' ? account.balance + amount : account.balance - amount;
-                
-                await supabase
-                    .from('accounts')
-                    .update({ balance: newBalance })
-                    .eq('id', account.id);
-                
-                await supabase
-                    .from('transactions')
-                    .insert([{
-                        user_id: currentUser.id,
-                        account_id: account.id,
-                        type: type,
-                        amount: amount,
-                        description: description || 'Transaction',
-                        date: date || new Date().toISOString().split('T')[0]
-                    }]);
-                
-                document.getElementById('txAmount').value = '';
-                document.getElementById('txDescription').value = '';
-                
-                await loadData();
-                alert('✅ Ajoutée!');
-            } catch (error) {
-                alert('❌ Erreur: ' + error.message);
-            }
-        }
-        
-        // Delete Transaction
-        async function deleteTransaction(id) {
-            if (confirm('🗑️ Supprimer?')) {
-                try {
-                    const tx = transactions.find(t => t.id === id);
-                    const account = accounts.find(a => a.id === tx.account_id);
-                    
-                    if (tx && account) {
-                        const newBalance = tx.type === 'income' ? account.balance - tx.amount : account.balance + tx.amount;
-                        await supabase.from('accounts').update({ balance: newBalance }).eq('id', account.id);
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/budget_data?user_id=eq.${supabaseUserId}&select=*`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
                     }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.length > 0) {
+                        const budgetData = data[0];
+                        accounts = budgetData.accounts || [];
+                        transactions = budgetData.transactions || [];
+                        subscriptions = budgetData.subscriptions || [];
+                        savings = budgetData.savings || [];
+                        categories = budgetData.categories || { 'Revenu': [], 'Dépense': [], 'Épargne': [] };
+                        console.log('☁️ Données chargées depuis Supabase');
+                    }
+                }
+            } catch (e) {
+                console.warn('⚠️ Erreur chargement Supabase:', e.message);
+            }
+        }
+        
+        // ✅ CHARGEMENT LOCAL
+        function loadAllData() {
+            if (!userId) return;
+            
+            // 🔒 RÉINITIALISER d'abord toutes les données
+            accounts = [];
+            transactions = [];
+            subscriptions = [];
+            savings = [];
+            categories = { 'Revenu': [], 'Dépense': [], 'Épargne': [] };
+            
+            // 🔒 CHARGER depuis localStorage avec la clé unifiée
+            try {
+                const saved = localStorage.getItem(`budget_${userId}`);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    accounts = parsed.data.accounts || [];
+                    transactions = parsed.data.transactions || [];
+                    subscriptions = parsed.data.subscriptions || [];
+                    savings = parsed.data.savings || [];
+                    categories = parsed.data.categories || { 'Revenu': [], 'Dépense': [], 'Épargne': [] };
+                    console.log('✅ Données chargées pour l\'utilisateur: ' + username);
+                } else {
+                    console.log('ℹ️ Aucune donnée trouvée pour cet utilisateur (premier login)');
+                }
+            } catch (e) {
+                console.error('❌ Erreur chargement:', e);
+            }
+        }
+        
+        // ✅ SYNC VERS SERVEUR - OBLIGATOIRE
+        async function syncToServer() {
+            if (!userId) return;
+            
+            const indicator = document.getElementById('syncIndicator');
+            if (indicator) indicator.textContent = '💾 Sauvegarde...';
+            
+            try {
+                // ✅ Sauvegarde en localStorage au lieu du serveur
+                localStorage.setItem(`budget_${userId}`, JSON.stringify({
+                    userId: userId,
+                    username: username,
+                    data: { accounts, transactions, subscriptions, savings, categories }
+                }));
+                
+                console.log('✅ Sauvegardé localement');
+                if (indicator) indicator.textContent = '✅ Sauvegardé';
+            } catch (e) {
+                console.error('❌ Erreur sauvegarde:', e);
+                if (indicator) indicator.textContent = '❌ Erreur sauvegarde';
+            }
+        }
+        
+        // ✅ ALIAS pour consistency - utilise loadAllData() instead
+        async function syncFromServer() {
+            loadAllData(); // C'est la même chose maintenant
+        }
+        
+        function processSubscriptions() {
+            const today = new Date().toISOString().split('T')[0];
+            subscriptions.forEach(sub => {
+                if (sub.nextDate && sub.nextDate <= today) {
+                    const newTx = {
+                        id: Math.max(...transactions.map(t => t.id || 0), 0) + 1,
+                        accountId: sub.accountId,
+                        type: sub.type,
+                        amount: sub.amount,
+                        description: sub.name + ' (Auto)',
+                        category: sub.category,
+                        date: today
+                    };
+                    transactions.push(newTx);
+                    updateAccountBalance(sub.accountId, sub.type === 'Revenu' ? sub.amount : -sub.amount);
                     
-                    await supabase.from('transactions').delete().eq('id', id);
-                    await loadData();
-                    alert('✅ Supprimée');
-                } catch (error) {
-                    alert('❌ Erreur: ' + error.message);
+                    const nextDate = calculateNextDate(sub);
+                    sub.nextDate = nextDate;
+                }
+            });
+            saveAllData();
+            syncToServer();
+        }
+        
+        function calculateNextDate(sub) {
+            const nextDate = new Date(sub.nextDate);
+            if (sub.frequency === 'daily') nextDate.setDate(nextDate.getDate() + 1);
+            else if (sub.frequency === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
+            else if (sub.frequency === 'monthly' || sub.frequency === 'monthly_day') {
+                if (sub.frequency === 'monthly_day' && sub.dayOfMonth) {
+                    nextDate.setMonth(nextDate.getMonth() + 1);
+                    nextDate.setDate(parseInt(sub.dayOfMonth));
+                } else {
+                    nextDate.setMonth(nextDate.getMonth() + 1);
                 }
             }
+            else if (sub.frequency === 'yearly') nextDate.setFullYear(nextDate.getFullYear() + 1);
+            return nextDate.toISOString().split('T')[0];
         }
         
-        // Update UI
+        function updateAccountBalance(accountId, amount) {
+            const account = accounts.find(a => a.id === accountId);
+            if (account) {
+                account.balance = (account.balance || 0) + amount;
+            }
+        }
+        
+        async function handleLogin() {
+            const user = document.getElementById('loginUsername').value.trim();
+            const pass = document.getElementById('loginPassword').value.trim();
+            if (!user || !pass) { alert('⚠️ Remplissez tous les champs'); return; }
+            
+            try {
+                // 🚀 ESSAYER SUPABASE D'ABORD (si online)
+                if (isOnline) {
+                    try {
+                        const response = await fetch(`${SUPABASE_URL}/rest/v1/budget_users?username=eq.${user}&select=*`, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const users = await response.json();
+                            if (users.length > 0 && users[0].password === pass) {
+                                // ✅ Authentification réussie sur Supabase
+                                userId = 'supabase_' + users[0].id;
+                                supabaseUserId = users[0].id;
+                                username = user;
+                                userEmail = users[0].email || user + '@budgetpro.app';
+                                localStorage.setItem('userId', userId);
+                                localStorage.setItem('username', username);
+                                localStorage.setItem('userEmail', userEmail);
+                                localStorage.setItem('supabaseUserId', supabaseUserId);
+                                
+                                // Charger les données depuis Supabase
+                                await syncFromSupabase();
+                                
+                                processSubscriptions();
+                                showApp();
+                                updateAllUI();
+                                console.log('☁️ Connecté via Supabase');
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Erreur Supabase, fallback localStorage:', e.message);
+                        isOnline = false;
+                    }
+                }
+                
+                // 💾 FALLBACK: Vérification dans localStorage (mode offline ou erreur Supabase)
+                const users = JSON.parse(localStorage.getItem('budgetUsers') || '{}');
+                if (users[user] && users[user].password === pass) {
+                    userId = 'local_' + btoa(user);
+                    supabaseUserId = null;
+                    username = user;
+                    userEmail = user + '@budgetpro.app';
+                    localStorage.setItem('userId', userId);
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('userEmail', userEmail);
+                    localStorage.removeItem('supabaseUserId');
+                    
+                    loadAllData();
+                    processSubscriptions();
+                    showApp();
+                    updateAllUI();
+                    console.log('💾 Connecté localement (mode offline ou fallback)');
+                } else { 
+                    alert('❌ Identifiants invalides'); 
+                }
+            } catch (e) { 
+                console.error('❌ Erreur login:', e);
+                alert('❌ Erreur: ' + e.message); 
+            }
+        }
+        
+        async function handleRegister() {
+            const user = document.getElementById('regUsername').value.trim();
+            const pass = document.getElementById('regPassword').value.trim();
+            if (!user || !pass) { alert('⚠️ Remplissez tous les champs'); return; }
+            
+            try {
+                // 🚀 ENREGISTRER DANS SUPABASE (si online)
+                if (isOnline) {
+                    // Vérifier si l'utilisateur existe déjà dans Supabase
+                    const checkResponse = await fetch(`${SUPABASE_URL}/rest/v1/budget_users?username=eq.${user}&select=id`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    });
+                    
+                    const existing = await checkResponse.json();
+                    if (existing.length > 0) {
+                        alert('❌ Cet utilisateur existe déjà sur le serveur');
+                        return;
+                    }
+                    
+                    // Créer l'utilisateur dans Supabase
+                    const response = await fetch(`${SUPABASE_URL}/rest/v1/budget_users`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Prefer': 'return=representation'
+                        },
+                        body: JSON.stringify({
+                            username: user,
+                            password: pass,
+                            email: user + '@budgetpro.app',
+                            created_at: new Date().toISOString()
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        alert('❌ Erreur: ' + (error.message || 'Impossible de créer le compte'));
+                        return;
+                    }
+                    
+                    const newUser = await response.json();
+                    
+                    // Créer l'entrée budget_data pour ce nouvel utilisateur
+                    await fetch(`${SUPABASE_URL}/rest/v1/budget_data`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Prefer': 'return=minimal'
+                        },
+                        body: JSON.stringify({
+                            user_id: newUser[0].id,
+                            accounts: [],
+                            transactions: [],
+                            subscriptions: [],
+                            savings: [],
+                            categories: { 'Revenu': [], 'Dépense': [], 'Épargne': [] }
+                        })
+                    });
+                    
+                    console.log('☁️ Compte créé sur Supabase');
+                    alert('✅ Compte créé sur le cloud! Connectez-vous maintenant.');
+                } else {
+                    // Mode offline: enregistrer localement seulement
+                    const users = JSON.parse(localStorage.getItem('budgetUsers') || '{}');
+                    if (users[user]) { 
+                        alert('❌ Cet utilisateur existe déjà localement'); 
+                        return;
+                    }
+                    users[user] = { 
+                        password: pass,
+                        createdAt: new Date().toISOString()
+                    };
+                    localStorage.setItem('budgetUsers', JSON.stringify(users));
+                    console.log('💾 Compte créé localement (mode offline)');
+                    alert('✅ Compte créé localement! Connectez-vous maintenant.');
+                }
+                
+                showLoginForm();
+                console.log('✅ Enregistrement réussi');
+            } catch (e) { 
+                console.error('❌ Erreur enregistrement:', e);
+                alert('❌ Erreur: ' + e.message); 
+            }
+        }
+        
+        function addAccount() {
+            const typeValue = document.getElementById('newAccountType').value;
+            const [typeName, emoji] = typeValue.split(':');
+            const customName = document.getElementById('newAccountName').value.trim() || typeName;
+            accounts.push({
+                id: Math.max(...accounts.map(a => a.id || 0), 0) + 1,
+                name: `${emoji} ${customName.toUpperCase()}`,
+                balance: 0,
+                type: typeName
+            });
+            saveAllData();
+            syncToServer(); // 🔴 SYNC!
+            updateAllUI();
+            closeModal('accountModal');
+            alert('✅ Compte créé et synchronisé!');
+        }
+        
+        function addTransaction() {
+            const account = document.getElementById('txAccount').value;
+            const type = document.getElementById('txType').value;
+            const amount = parseFloat(document.getElementById('txAmount').value);
+            const category = document.getElementById('txCategory').value;
+            const description = document.getElementById('txDescription').value || 'Transaction';
+            const date = document.getElementById('txDate').value || new Date().toISOString().split('T')[0];
+            
+            if (!amount || amount <= 0) { alert('⚠️ Montant invalide'); return; }
+            const acc = accounts.find(a => a.name === account);
+            if (!acc) return;
+            
+            transactions.push({
+                id: Math.max(...transactions.map(t => t.id || 0), 0) + 1,
+                accountId: acc.id,
+                type: type,
+                amount: amount,
+                description: description,
+                category: category,
+                date: date,
+                savingsId: type === 'Épargne' ? parseInt(document.getElementById('txSavings').value) || null : null
+            });
+            
+            if (type === 'Épargne') {
+                const savingsId = parseInt(document.getElementById('txSavings').value);
+                const saving = savings.find(s => s.id === savingsId);
+                if (saving) {
+                    saving.current = (saving.current || 0) + amount;
+                    updateAccountBalance(acc.id, -amount);
+                }
+            } else if (type !== 'Transfert') {
+                updateAccountBalance(acc.id, type === 'Revenu' ? amount : -amount);
+            }
+            
+            saveAllData();
+            syncToServer(); // 🔴 SYNC IMMÉDIAT!
+            document.getElementById('txAmount').value = '';
+            document.getElementById('txDescription').value = '';
+            document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+            updateAllUI();
+            alert('✅ Transaction ajoutée et synchronisée!');
+        }
+        
+        function addTransfer() {
+            const from = parseInt(document.getElementById('transferFrom').value);
+            const to = parseInt(document.getElementById('transferTo').value);
+            const amount = parseFloat(document.getElementById('transferAmount').value);
+            const date = document.getElementById('transferDate').value || new Date().toISOString().split('T')[0];
+            
+            if (from === to) { alert('⚠️ Sélectionnez 2 comptes différents'); return; }
+            if (!amount || amount <= 0) { alert('⚠️ Montant invalide'); return; }
+            
+            const accFrom = accounts.find(a => a.id === from);
+            const accTo = accounts.find(a => a.id === to);
+            
+            if (!accFrom || !accTo) return;
+            if ((accFrom.balance || 0) < amount) { alert('⚠️ Solde insuffisant'); return; }
+            
+            const txId = Math.max(...transactions.map(t => t.id || 0), 0);
+            transactions.push({
+                id: txId + 1,
+                accountId: from,
+                type: 'Transfert',
+                amount: amount,
+                description: `Transfert vers ${accTo.name}`,
+                category: 'Transfert',
+                date: date
+            });
+            transactions.push({
+                id: txId + 2,
+                accountId: to,
+                type: 'Transfert',
+                amount: amount,
+                description: `Transfert depuis ${accFrom.name}`,
+                category: 'Transfert',
+                date: date
+            });
+            
+            updateAccountBalance(from, -amount);
+            updateAccountBalance(to, amount);
+            
+            saveAllData();
+            syncToServer();
+            updateAllUI();
+            closeModal('transferModal');
+            alert('✅ Transfert effectué!');
+        }
+        
+        function deleteTransaction(id) {
+            const tx = transactions.find(t => t.id === id);
+            if (confirm('🗑️ Supprimer?')) {
+                if (tx) {
+                    if (tx.type === 'Épargne' && tx.savingsId) {
+                        const saving = savings.find(s => s.id === tx.savingsId);
+                        if (saving) saving.current = (saving.current || 0) - tx.amount;
+                        updateAccountBalance(tx.accountId, tx.amount);
+                    } else if (tx.type !== 'Transfert') {
+                        updateAccountBalance(tx.accountId, tx.type === 'Revenu' ? -tx.amount : tx.amount);
+                    }
+                }
+                transactions = transactions.filter(t => t.id !== id);
+                saveAllData();
+                syncToServer();
+                updateAllUI();
+                alert('✅ Supprimée');
+            }
+        }
+        
+        function addSubscription() {
+            const name = document.getElementById('subName').value.trim();
+            const accountId = parseInt(document.getElementById('subAccount').value);
+            const type = document.getElementById('subType').value;
+            const amount = parseFloat(document.getElementById('subAmount').value);
+            const frequency = document.getElementById('subFrequency').value;
+            const category = document.getElementById('subCategory').value;
+            const startDate = document.getElementById('subStartDate').value;
+            const dayOfMonth = frequency === 'monthly_day' ? document.getElementById('subDayOfMonth').value : null;
+            
+            if (!name || !amount || !startDate) { alert('⚠️ Remplissez tous les champs'); return; }
+            
+            subscriptions.push({
+                id: Math.max(...subscriptions.map(s => s.id || 0), 0) + 1,
+                name: name,
+                accountId: accountId,
+                type: type,
+                amount: amount,
+                frequency: frequency,
+                dayOfMonth: dayOfMonth,
+                category: category,
+                nextDate: startDate
+            });
+            saveAllData();
+            syncToServer();
+            processSubscriptions();
+            updateAllUI();
+            closeModal('subscriptionModal');
+            alert('✅ Abonnement créé!');
+        }
+        
+        function deleteSubscription(id) {
+            if (confirm('🗑️ Supprimer?')) {
+                subscriptions = subscriptions.filter(s => s.id !== id);
+                saveAllData();
+                syncToServer();
+                updateAllUI();
+                alert('✅ Supprimé');
+            }
+        }
+        
+        function addSavings() {
+            const name = document.getElementById('savingsName').value.trim();
+            const target = parseFloat(document.getElementById('savingsTarget').value);
+            const current = parseFloat(document.getElementById('savingsCurrent').value) || 0;
+            if (!name || !target) { alert('⚠️ Remplissez les champs obligatoires'); return; }
+            
+            const id = Date.now();
+            savings.push({ id: id, name: name, target: target, current: current });
+            
+            if (!categories['Épargne']) categories['Épargne'] = [];
+            if (!categories['Épargne'].includes(name)) {
+                categories['Épargne'].push(name);
+            }
+            
+            saveAllData();
+            syncToServer();
+            updateAllUI();
+            closeModal('savingsModal');
+            alert('✅ Épargne créée!');
+        }
+        
+        function deleteSavings(id) {
+            if (confirm('🗑️ Supprimer?')) {
+                const saving = savings.find(s => s.id === id);
+                if (saving && categories['Épargne']) {
+                    categories['Épargne'] = categories['Épargne'].filter(c => c !== saving.name);
+                }
+                savings = savings.filter(s => s.id !== id);
+                saveAllData();
+                syncToServer();
+                updateAllUI();
+                alert('✅ Supprimée');
+            }
+        }
+        
         function updateAllUI() {
             let income = 0, expense = 0;
             transactions.forEach(tx => {
-                if (tx.type === 'income') income += tx.amount;
-                else expense += tx.amount;
+                if (tx.type === 'Revenu') income += tx.amount;
+                else if (tx.type === 'Dépense') expense += tx.amount;
             });
-            
             document.getElementById('totalIncome').textContent = income.toFixed(2) + '€';
             document.getElementById('totalExpense').textContent = expense.toFixed(2) + '€';
             document.getElementById('totalBalance').textContent = (income - expense).toFixed(2) + '€';
@@ -629,6 +1265,17 @@
                 </div>
             `).join('');
             
+            document.getElementById('dashboardTransactions').innerHTML = transactions.slice(-8).reverse().map(tx => `
+                <div class="table-row">
+                    <div>${tx.description}</div>
+                    <div style="font-size:13px;color:var(--text-secondary);">${tx.category}</div>
+                    <div style="font-size:13px;color:var(--text-secondary);">${accounts.find(a => a.id === tx.accountId)?.name || 'N/A'}</div>
+                    <div class="tx-amount ${tx.type === 'Revenu' ? 'income' : tx.type === 'Transfert' ? 'transfer' : 'expense'}">${tx.type === 'Revenu' ? '+' : tx.type === 'Transfert' ? '⟷' : '-'}${tx.amount.toFixed(2)}€</div>
+                    <div style="font-size:13px;color:var(--text-secondary);">${tx.date}</div>
+                    <button class="tx-delete-btn" onclick="deleteTransaction(${tx.id})">✕</button>
+                </div>
+            `).join('');
+            
             document.getElementById('accountsList').innerHTML = accounts.map(acc => `
                 <div class="account-card">
                     <div class="account-name">${acc.name}</div>
@@ -636,55 +1283,231 @@
                 </div>
             `).join('');
             
-            document.getElementById('dashboardTransactions').innerHTML = transactions.slice(-8).reverse().map(tx => `
-                <div class="table-row">
-                    <div>${tx.description}</div>
-                    <div style="font-size:13px;">${tx.type}</div>
-                    <div style="font-size:13px;">${accounts.find(a => a.id === tx.account_id)?.name || 'N/A'}</div>
-                    <div class="tx-amount ${tx.type === 'income' ? 'income' : 'expense'}">${tx.type === 'income' ? '+' : '-'}${tx.amount.toFixed(2)}€</div>
-                    <div style="font-size:13px;">${tx.date}</div>
-                    <button class="tx-delete-btn" onclick="deleteTransaction(${tx.id})">✕</button>
-                </div>
-            `).join('');
-            
             document.getElementById('transactionsList').innerHTML = transactions.map(tx => `
                 <div class="table-row">
                     <div>${tx.description}</div>
-                    <div style="font-size:13px;">${tx.type}</div>
-                    <div style="font-size:13px;">${accounts.find(a => a.id === tx.account_id)?.name || 'N/A'}</div>
-                    <div class="tx-amount ${tx.type === 'income' ? 'income' : 'expense'}">${tx.type === 'income' ? '+' : '-'}${tx.amount.toFixed(2)}€</div>
+                    <div style="font-size:13px;">${tx.category}</div>
+                    <div style="font-size:13px;">${accounts.find(a => a.id === tx.accountId)?.name || 'N/A'}</div>
+                    <div class="tx-amount ${tx.type === 'Revenu' ? 'income' : tx.type === 'Transfert' ? 'transfer' : 'expense'}">${tx.type === 'Revenu' ? '+' : tx.type === 'Transfert' ? '⟷' : '-'}${tx.amount.toFixed(2)}€</div>
                     <div style="font-size:13px;">${tx.date}</div>
                     <button class="tx-delete-btn" onclick="deleteTransaction(${tx.id})">✕</button>
                 </div>
             `).join('');
             
+            document.getElementById('subscriptionsList').innerHTML = subscriptions.map(sub => `
+                <div class="subscription-card">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:9px;">
+                        <div><div style="font-weight:600;font-size:15px;">${sub.name}</div><div style="font-size:14px;color:var(--danger);">${sub.type === 'Revenu' ? '+' : '-'}${sub.amount.toFixed(2)}€</div></div>
+                        <button class="tx-delete-btn" onclick="deleteSubscription(${sub.id})">✕</button>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;font-size:13px;">
+                        <div style="background:var(--bg-secondary);padding:7px;border-radius:4px;"><div style="color:var(--text-secondary);">Fréq.</div><div style="color:var(--text-primary);font-weight:bold;font-size:12px;">${sub.frequency === 'monthly_day' ? `Le ${sub.dayOfMonth}` : sub.frequency}</div></div>
+                        <div style="background:var(--bg-secondary);padding:7px;border-radius:4px;"><div style="color:var(--text-secondary);">Prochaine</div><div style="color:var(--text-primary);font-weight:bold;font-size:12px;">${sub.nextDate}</div></div>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('savingsList').innerHTML = savings.map(saving => {
+                const pct = (saving.current / saving.target) * 100;
+                return `
+                    <div class="savings-card">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:9px;">
+                            <div><div style="font-weight:600;font-size:15px;">💰 ${saving.name}</div><div style="font-size:13px;color:var(--text-secondary);">Cible: ${saving.target.toFixed(2)}€</div></div>
+                            <button class="tx-delete-btn" onclick="deleteSavings(${saving.id})">✕</button>
+                        </div>
+                        <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(pct, 100)}%;"></div></div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;font-size:12px;">
+                            <div style="background:var(--bg-secondary);padding:7px;border-radius:4px;text-align:center;"><div style="color:var(--text-secondary);">Épargné</div><div style="color:var(--text-primary);font-weight:bold;">${saving.current.toFixed(0)}€</div></div>
+                            <div style="background:var(--bg-secondary);padding:7px;border-radius:4px;text-align:center;"><div style="color:var(--text-secondary);">Reste</div><div style="color:var(--text-primary);font-weight:bold;">${(saving.target - saving.current).toFixed(0)}€</div></div>
+                            <div style="background:var(--bg-secondary);padding:7px;border-radius:4px;text-align:center;"><div style="color:var(--text-secondary);">%</div><div style="color:var(--text-primary);font-weight:bold;">${pct.toFixed(0)}%</div></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            updateCategoryFilter();
+            updateSelectors();
+            setDateInputToday();
+            renderCalendar();
+        }
+        
+        function renderCalendar() {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+            const adjustedStart = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1;
+            
+            const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+            document.getElementById('calendarMonth').textContent = `${monthNames[month]} ${year}`;
+            
+            const calendarDays = document.getElementById('calendarDays');
+            calendarDays.innerHTML = '';
+            
+            for (let i = 0; i < adjustedStart; i++) {
+                const prevDate = new Date(year, month, -(adjustedStart - i - 1));
+                const day = document.createElement('div');
+                day.className = 'calendar-day other-month';
+                day.textContent = prevDate.getDate();
+                calendarDays.appendChild(day);
+            }
+            
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayTxs = transactions.filter(t => t.date === dateStr);
+                const daySubs = subscriptions.filter(s => {
+                    if (!s.nextDate) return false;
+                    if (s.frequency === 'monthly_day' && s.dayOfMonth) {
+                        return parseInt(s.dayOfMonth) === day;
+                    }
+                    return s.nextDate === dateStr;
+                });
+                
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day';
+                if (dateStr === todayStr) dayEl.classList.add('today');
+                
+                const dateElem = document.createElement('div');
+                dateElem.className = 'calendar-day-date';
+                dateElem.textContent = day;
+                dayEl.appendChild(dateElem);
+                
+                dayTxs.forEach(tx => {
+                    const item = document.createElement('div');
+                    item.className = `calendar-item ${tx.type === 'Revenu' ? 'income' : tx.type === 'Transfert' ? 'transfer' : 'expense'}`;
+                    item.textContent = `${tx.type === 'Revenu' ? '+' : '-'}${tx.amount.toFixed(0)}€`;
+                    dayEl.appendChild(item);
+                });
+                
+                daySubs.forEach(sub => {
+                    const item = document.createElement('div');
+                    item.className = 'calendar-item subscription';
+                    item.textContent = sub.name.substring(0, 10);
+                    dayEl.appendChild(item);
+                });
+                
+                calendarDays.appendChild(dayEl);
+            }
+            
+            const remainingDays = 42 - (adjustedStart + daysInMonth);
+            for (let i = 1; i <= remainingDays; i++) {
+                const day = document.createElement('div');
+                day.className = 'calendar-day other-month';
+                day.textContent = i;
+                calendarDays.appendChild(day);
+            }
+        }
+        
+        function previousMonth() {
+            currentMonth.setMonth(currentMonth.getMonth() - 1);
+            renderCalendar();
+        }
+        
+        function nextMonth() {
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+            renderCalendar();
+        }
+        
+        function todayMonth() {
+            currentMonth = new Date();
+            renderCalendar();
+        }
+        
+        function setDateInputToday() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('txDate').value = today;
+        }
+        
+        function updateCategoryFilter() {
+            const type = document.getElementById('txType').value;
+            const categorySelect = document.getElementById('txCategory');
+            const categoryList = categories[type] || [];
+            categorySelect.innerHTML = categoryList.map(c => `<option value="${c}">${c}</option>`).join('');
+            
+            if (type === 'Épargne') {
+                document.getElementById('savingsSelectRow').style.display = 'grid';
+                const savingsSelect = document.getElementById('txSavings');
+                savingsSelect.innerHTML = '<option value="">Sélectionner une épargne...</option>' + savings.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            } else {
+                document.getElementById('savingsSelectRow').style.display = 'none';
+            }
+        }
+        
+        function updateSelectors() {
             const options = accounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
             document.getElementById('txAccount').innerHTML = options;
+            document.getElementById('subAccount').innerHTML = accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+            document.getElementById('transferFrom').innerHTML = accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+            document.getElementById('transferTo').innerHTML = accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
             
-            document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+            const type = document.getElementById('subType')?.value || 'Dépense';
+            const categoryList = categories[type] || [];
+            document.getElementById('subCategory').innerHTML = categoryList.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+        
+        function toggleDayOfMonth() {
+            const freq = document.getElementById('subFrequency').value;
+            document.getElementById('dayOfMonthInput').style.display = freq === 'monthly_day' ? 'block' : 'none';
         }
         
         function switchScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
-            const titles = { dashboard: 'Tableau de bord', accounts: 'Mes Comptes', transactions: 'Transactions' };
-            document.getElementById('topbarTitle').textContent = titles[screenId];
+            const titles = { dashboard: 'Tableau de bord', accounts: 'Mes Comptes', transactions: 'Transactions', calendar: 'Calendrier', subscriptions: 'Abonnements', savings: 'Épargnes', settings: 'Paramètres' };
+            document.getElementById('topbarTitle').textContent = titles[screenId] || screenId;
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            event?.target?.closest('.nav-item')?.classList.add('active');
+            if (screenId === 'calendar') {
+                renderCalendar();
+            }
         }
         
         function showApp() {
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('appWrapper').style.display = 'flex';
+            document.getElementById('sidebarUsername').textContent = username;
+            document.getElementById('sidebarEmail').textContent = userEmail;
         }
         
-        async function logout() {
-            await supabase.auth.signOut();
-            currentUser = null;
+        // ✅ FIX: Ne pas appeler clearUserData() - GARDER LES DONNÉES!
+        function logout() {
+            // 🚀 SYNCER AVEC SUPABASE avant logout
+            if (userId && supabaseUserId && isOnline) {
+                syncToSupabase();
+            }
+            
+            // 🔒 SAUVEGARDER localement
+            if (userId) {
+                saveAllData();
+            }
+            
+            // 🔒 RÉINITIALISER toutes les variables globales
+            userId = null;
+            username = null;
+            userEmail = null;
+            supabaseUserId = null;
             accounts = [];
             transactions = [];
+            subscriptions = [];
+            savings = [];
+            categories = { 'Revenu': [], 'Dépense': [], 'Épargne': [] };
+            
+            localStorage.removeItem('userId');
+            localStorage.removeItem('username');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('supabaseUserId');
             document.getElementById('loginContainer').style.display = 'flex';
             document.getElementById('appWrapper').style.display = 'none';
-            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginUsername').value = '';
             document.getElementById('loginPassword').value = '';
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+            console.log('✅ Déconnexion - Données sauvegardées (Supabase + Local) et vidées');
         }
         
         function showLoginForm() {
@@ -702,27 +1525,167 @@
             document.getElementById('accountModal').classList.add('active');
         }
         
+        function showTransferModal() {
+            document.getElementById('transferAmount').value = '';
+            document.getElementById('transferDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('transferModal').classList.add('active');
+        }
+        
+        function showAddSubscriptionModal() {
+            document.getElementById('subName').value = '';
+            document.getElementById('subAmount').value = '';
+            document.getElementById('subStartDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('subFrequency').value = 'monthly';
+            document.getElementById('dayOfMonthInput').style.display = 'none';
+            document.getElementById('subscriptionModal').classList.add('active');
+        }
+        
+        function showAddSavingsModal() {
+            document.getElementById('savingsName').value = '';
+            document.getElementById('savingsTarget').value = '';
+            document.getElementById('savingsCurrent').value = '';
+            document.getElementById('savingsModal').classList.add('active');
+        }
+        
+        function showAddCategoryModal(type) {
+            document.getElementById('modalCategoryTitle').textContent = `➕ Ajouter catégorie ${type}`;
+            document.getElementById('newCategoryName').value = '';
+            document.getElementById('categoryModal').classList.add('active');
+            document.getElementById('categoryModal').dataset.type = type;
+        }
+        
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('active');
         }
         
-        function toggleTheme() {
-            document.body.classList.toggle('light-mode');
+        function addNewCategory() {
+            const name = document.getElementById('newCategoryName').value.trim();
+            const type = document.getElementById('categoryModal').dataset.type || 'Dépense';
+            if (!name) { alert('⚠️ Entrez un nom'); return; }
+            if (!categories[type]) categories[type] = [];
+            if (!categories[type].includes(name)) {
+                categories[type].push(name);
+                saveAllData();
+                syncToServer();
+                updateCategoryFilter();
+                alert('✅ Catégorie ajoutée!');
+                closeModal('categoryModal');
+            } else { alert('⚠️ Existe déjà'); }
         }
         
-        // Check if logged in
-        supabase.auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                currentUser = user;
-                await loadData();
-                showApp();
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            document.querySelector('button[onclick="toggleTheme()"]').textContent = isLight ? '🌙' : '☀️';
+        }
+        
+        async function deleteAccount() {
+            if (!confirm('⚠️ ATTENTION: Cette action est IRRÉVERSIBLE!\n\nVotre compte et toutes vos données seront définitivement supprimés.\n\nConfirmer la suppression?')) return;
+            if (!confirm('🗑️ Êtes-vous VRAIMENT sûr(e)? Tapez "SUPPRIMER" pour confirmer.')) return;
+            
+            const confirmation = prompt('Tapez "SUPPRIMER" pour confirmer:');
+            if (confirmation !== 'SUPPRIMER') { alert('❌ Suppression annulée'); return; }
+            
+            try {
+                // ✅ Suppression depuis localStorage
+                const users = JSON.parse(localStorage.getItem('budgetUsers') || '{}');
+                delete users[username];
+                localStorage.setItem('budgetUsers', JSON.stringify(users));
+                localStorage.removeItem(`budget_${userId}`);
+                
+                alert('✅ Compte supprimé définitivement');
+                logout();
+            } catch (e) {
+                alert('❌ Erreur: ' + e.message);
             }
+        }
+        
+        async function resetPassword() {
+            const newPassword = prompt('Entrez votre nouveau mot de passe:');
+            if (!newPassword || newPassword.length < 3) { alert('⚠️ Mot de passe trop court (min 3 caractères)'); return; }
+            
+            const confirm = prompt('Confirmez votre nouveau mot de passe:');
+            if (confirm !== newPassword) { alert('❌ Les mots de passe ne correspondent pas'); return; }
+            
+            try {
+                // ✅ Changement depuis localStorage
+                const users = JSON.parse(localStorage.getItem('budgetUsers') || '{}');
+                if (users[username]) {
+                    users[username].password = newPassword;
+                    localStorage.setItem('budgetUsers', JSON.stringify(users));
+                    alert('✅ Mot de passe changé avec succès!\n\nVous allez être déconnecté.');
+                    logout();
+                } else {
+                    alert('❌ Utilisateur non trouvé');
+                }
+            } catch (e) {
+                alert('❌ Erreur: ' + e.message);
+            }
+        }
+        
+        window.addEventListener('load', () => {
+            const theme = localStorage.getItem('theme') || 'dark';
+            if (theme === 'light') {
+                document.body.classList.add('light-mode');
+                document.querySelector('button[onclick="toggleTheme()"]').textContent = '🌙';
+            }
+            
+            const savedId = localStorage.getItem('userId');
+            const savedUser = localStorage.getItem('username');
+            const savedSupabaseId = localStorage.getItem('supabaseUserId');
+            
+            if (savedId && savedUser) {
+                userId = savedId;
+                username = savedUser;
+                userEmail = localStorage.getItem('userEmail') || (username + '@budgetpro.app');
+                supabaseUserId = savedSupabaseId || null;
+                
+                loadAllData();
+                // 🚀 Charger depuis Supabase si connecté avec Supabase
+                if (supabaseUserId) {
+                    syncFromSupabase();
+                }
+                processSubscriptions();
+                showApp();
+                updateAllUI();
+                renderCalendar();
+            }
+            
+            // ⏲️ AUTO-SYNC toutes les 30 secondes
+            setInterval(() => {
+                if (userId && isOnline) {
+                    saveAllData();
+                    if (supabaseUserId) {
+                        syncToSupabase();
+                    }
+                }
+            }, 30000);
+            
+            setInterval(processSubscriptions, 3600000);
+            setInterval(syncToServer, 300000);
+            
+            // 🌐 DÉTECTER online/offline
+            window.addEventListener('online', () => {
+                isOnline = true;
+                console.log('🌐 Online - Sync activée');
+                const indicator = document.getElementById('syncIndicator');
+                if (indicator) indicator.textContent = '🌐 Online';
+            });
+            
+            window.addEventListener('offline', () => {
+                isOnline = false;
+                console.log('📡 Offline - Mode local');
+                const indicator = document.getElementById('syncIndicator');
+                if (indicator) indicator.textContent = '📡 Offline';
+            });
         });
         
-        document.addEventListener('click', e => {
-            if (e.target === document.getElementById('accountModal')) {
-                closeModal('accountModal');
-            }
+        document.addEventListener('click', (e) => {
+            ['accountModal', 'transferModal', 'subscriptionModal', 'savingsModal', 'categoryModal'].forEach(id => {
+                const modal = document.getElementById(id);
+                if (e.target === modal) closeModal(id);
+            });
         });
     </script>
 </body>
