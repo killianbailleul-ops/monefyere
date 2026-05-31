@@ -278,7 +278,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     <div class="sidebar-bottom">
       <div class="user-info">
         <div class="user-avatar" id="sideAvatar">?</div>
-        <div><div class="user-name" id="sideName">—</div><div class="user-email" id="sideEmail">—</div></div>
+        <div><div class="user-name" id="sideName">-</div><div class="user-email" id="sideEmail">-</div></div>
       </div>
       <button class="btn-logout" onclick="logout()">Deconnexion</button>
     </div>
@@ -440,7 +440,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
         </div>
         <div id="importPreview" style="display:none;">
           <div class="section-header">
-            <div class="section-title">👁️ Apercu — <span id="previewCount">0</span> lignes</div>
+            <div class="section-title">👁️ Apercu - <span id="previewCount">0</span> lignes</div>
             <button class="btn-sm primary" onclick="confirmImport()">✅ Importer tout</button>
           </div>
           <div id="importErrors"></div>
@@ -587,26 +587,27 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 </div>
 
 <script>
-// ═══════════════════════════════════════════
+// ---
 //  FIREBASE (optionnel, sync multi-appareils)
-// ═══════════════════════════════════════════
+// ---
 var FB = 'https://monefyer-default-rtdb.europe-west1.firebasedatabase.app';
 function fbGet(path){ return fetch(FB+path+'.json').then(function(r){return r.json();}).catch(function(){return null;}); }
 function fbSet(path,data){ return fetch(FB+path+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).catch(function(){}); }
 
-// ═══════════════════════════════════════════
+// ---
 //  ETAT GLOBAL
-// ═══════════════════════════════════════════
+// ---
 var userId=null, username=null, userEmail=null;
+function pad2(n){ return n<10?'0'+n:''+n; }
 var accounts=[], transactions=[], subscriptions=[], savings=[];
 var categories={'Revenu':['Salaire','Freelance','Bonus'],'Depense':['Alimentation','Transport','Loisirs','Maison','Sante'],'Epargne':[]};
 var curMonth = new Date();
 var fbTimer = null;
 var parsedRows = [];
 
-// ═══════════════════════════════════════════
+// ---
 //  LOCALSTORAGE AUTH
-// ═══════════════════════════════════════════
+// ---
 function getUsers(){
   try{ return JSON.parse(localStorage.getItem('budgetUsers')||'{}'); }
   catch(e){ return {}; }
@@ -648,9 +649,9 @@ function handleRegister(){
 function showLogin(){ document.getElementById('formLogin').style.display='block'; document.getElementById('formReg').style.display='none'; }
 function showReg(){ document.getElementById('formLogin').style.display='none'; document.getElementById('formReg').style.display='block'; }
 
-// ═══════════════════════════════════════════
+// ---
 //  SAUVEGARDE / CHARGEMENT
-// ═══════════════════════════════════════════
+// ---
 function saveAll(){
   if(!userId) return;
   var d = {accounts:accounts,transactions:transactions,subscriptions:subscriptions,savings:savings,categories:categories};
@@ -690,9 +691,9 @@ function loadAll(){
   }, 5000);
 }
 
-// ═══════════════════════════════════════════
+// ---
 //  SHOW APP
-// ═══════════════════════════════════════════
+// ---
 function showApp(){
   document.getElementById('loginWrap').style.display='none';
   document.getElementById('appWrap').style.display='flex';
@@ -718,9 +719,9 @@ function logout(){
   showLogin();
 }
 
-// ═══════════════════════════════════════════
+// ---
 //  NAVIGATION
-// ═══════════════════════════════════════════
+// ---
 var titles={dashboard:'Tableau de bord',accounts:'Mes Comptes',transactions:'Transactions',calendar:'Calendrier',excel:'Tableau Mensuel',subscriptions:'Abonnements',savings:'Epargne',import:'Import CSV',advisor:'Conseiller IA',settings:'Parametres'};
 
 function go(id,el){
@@ -733,9 +734,9 @@ function go(id,el){
   if(id==='excel') renderExcel();
 }
 
-// ═══════════════════════════════════════════
+// ---
 //  ACCOUNTS
-// ═══════════════════════════════════════════
+// ---
 function addAccount(){
   var tv = document.getElementById('newAccType').value;
   var parts = tv.split(':');
@@ -752,9 +753,9 @@ function updateBalance(accId,delta){
   if(a) a.balance = (a.balance||0)+delta;
 }
 
-// ═══════════════════════════════════════════
+// ---
 //  TRANSACTIONS
-// ═══════════════════════════════════════════
+// ---
 function addTx(){
   var accName = document.getElementById('txAcc').value;
   var type = document.getElementById('txType').value;
@@ -814,9 +815,9 @@ function addTransfer(){
   saveAll(); renderAll(); closeModal('modalTransfer');
 }
 
-// ═══════════════════════════════════════════
+// ---
 //  SUBSCRIPTIONS
-// ═══════════════════════════════════════════
+// ---
 function calcNext(sub){
   var d = new Date(sub.nextDate);
   if(sub.frequency==='daily') d.setDate(d.getDate()+1);
@@ -861,9 +862,9 @@ function deleteSub(id){
   saveAll(); renderAll();
 }
 
-// ═══════════════════════════════════════════
+// ---
 //  SAVINGS
-// ═══════════════════════════════════════════
+// ---
 function addSav(){
   var name = document.getElementById('savName').value.trim();
   var target = parseFloat(document.getElementById('savTarget').value);
@@ -881,9 +882,9 @@ function deleteSav(id){
   saveAll(); renderAll();
 }
 
-// ═══════════════════════════════════════════
+// ---
 //  CATEGORIES
-// ═══════════════════════════════════════════
+// ---
 var catModalType = 'Depense';
 function openAddCat(type){ catModalType=type; document.getElementById('catModalTitle').textContent='Ajouter categorie '+type; document.getElementById('catName').value=''; openModal('modalCat'); }
 function addCat(){
@@ -898,10 +899,10 @@ function delCat(type,name){
   saveAll(); renderAll();
 }
 
-// ═══════════════════════════════════════════
+// ---
 //  RENDER
-// ═══════════════════════════════════════════
-function fmt(n){ return (n||0).toFixed(2)+'€'; }
+// ---
+function fmt(n){ return (n||0).toFixed(2)+'\u20ac'; }
 function today(){ return new Date().toISOString().split('T')[0]; }
 
 function renderAll(){
@@ -928,7 +929,7 @@ function renderDashboard(){
   document.getElementById('d-wealth').textContent=fmt(wealth);
   document.getElementById('d-accounts').innerHTML = accounts.map(function(a){
     return '<div class="acc-card"><div class="acc-name">'+a.name+'</div><div class="acc-balance">'+fmt(a.balance||0)+'</div></div>';
-  }).join('')||'<div class="empty"><div class="empty-icon">🏦</div><p>Aucun compte</p></div>';
+  }).join('')||'<div class="empty"><div class="empty-icon">[Banque]</div><p>Aucun compte</p></div>';
   document.getElementById('d-txs').innerHTML = transactions.slice(-8).reverse().map(function(tx){return txRow(tx);}).join('')||'<div class="empty"><p>Aucune transaction</p></div>';
   renderCashflow();
 }
@@ -965,13 +966,13 @@ function renderCashflow(){
 function renderAccList(){
   document.getElementById('accList').innerHTML = accounts.map(function(a){
     return '<div class="acc-card"><div class="acc-name">'+a.name+'</div><div class="acc-balance">'+fmt(a.balance||0)+'</div></div>';
-  }).join('')||'<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🏦</div><p>Aucun compte</p></div>';
+  }).join('')||'<div class="empty" style="grid-column:1/-1"><div class="empty-icon">[Banque]</div><p>Aucun compte</p></div>';
 }
 
 function txRow(tx){
   var accName = (accounts.find(function(a){return a.id===tx.accountId;})||{}).name||'N/A';
   var cls = tx.type==='Revenu'?'amount-in':tx.type==='Transfert'?'amount-tr':'amount-out';
-  var sign = tx.type==='Revenu'?'+':tx.type==='Transfert'?'⟷':'-';
+  var sign = tx.type==='Revenu'?'+':tx.type==='Transfert'?'<->':'-';
   var tagCls = tx.type==='Revenu'?'income':tx.type==='Transfert'?'transfer':tx.type==='Epargne'?'savings':'expense';
   return '<div class="table-row tx-cols">'+
     '<div>'+tx.description+'</div>'+
@@ -979,7 +980,7 @@ function txRow(tx){
     '<div style="color:var(--text2);font-size:12px;">'+accName+'</div>'+
     '<div class="'+cls+'">'+sign+fmt(tx.amount)+'</div>'+
     '<div style="color:var(--text2);font-size:12px;font-family:var(--mono);">'+tx.date+'</div>'+
-    '<button class="del-btn" onclick="deleteTx('+tx.id+')">✕</button>'+
+    '<button class="del-btn" onclick="deleteTx('+tx.id+')">X</button>'+
     '</div>';
 }
 
@@ -1014,19 +1015,19 @@ function renderSubs(){
   document.getElementById('subList').innerHTML=subscriptions.map(function(s){
     return '<div class="sub-card">'+
       '<div class="card-row">'+
-        '<div><div class="card-name">🔄 '+s.name+'</div><span class="tag '+(s.type==='Revenu'?'income':'expense')+'">'+s.type+'</span></div>'+
+        '<div><div class="card-name">[Abonnement] '+s.name+'</div><span class="tag '+(s.type==='Revenu'?'income':'expense')+'">'+s.type+'</span></div>'+
         '<div style="display:flex;align-items:center;gap:12px;">'+
           '<div class="card-amount '+(s.type==='Revenu'?'amount-in':'amount-out')+'">'+(s.type==='Revenu'?'+':'-')+fmt(s.amount)+'</div>'+
-          '<button class="del-btn" onclick="deleteSub('+s.id+')">✕</button>'+
+          '<button class="del-btn" onclick="deleteSub('+s.id+')">X</button>'+
         '</div>'+
       '</div>'+
       '<div class="card-meta">'+
         '<div class="meta-item"><div class="meta-label">Freq.</div><div class="meta-val">'+(freqLabels[s.frequency]||s.frequency)+(s.frequency==='monthly_day'?' '+s.dayOfMonth:'')+'</div></div>'+
         '<div class="meta-item"><div class="meta-label">Prochaine</div><div class="meta-val">'+s.nextDate+'</div></div>'+
-        '<div class="meta-item"><div class="meta-label">Categorie</div><div class="meta-val">'+(s.category||'—')+'</div></div>'+
+        '<div class="meta-item"><div class="meta-label">Categorie</div><div class="meta-val">'+(s.category||'-')+'</div></div>'+
       '</div>'+
     '</div>';
-  }).join('')||'<div class="empty"><div class="empty-icon">🔄</div><p>Aucun abonnement</p></div>';
+  }).join('')||'<div class="empty"><div class="empty-icon">[Abonnement]</div><p>Aucun abonnement</p></div>';
 }
 
 function renderSavings(){
@@ -1034,10 +1035,10 @@ function renderSavings(){
     var pct=Math.min((s.current/s.target)*100,100);
     return '<div class="sav-card">'+
       '<div class="card-row">'+
-        '<div><div class="card-name">🐖 '+s.name+'</div><div style="font-size:12px;color:var(--text2);">Objectif: '+fmt(s.target)+'</div></div>'+
+        '<div><div class="card-name">[Epargne] '+s.name+'</div><div style="font-size:12px;color:var(--text2);">Objectif: '+fmt(s.target)+'</div></div>'+
         '<div style="display:flex;align-items:center;gap:12px;">'+
           '<div class="card-amount amount-in">'+fmt(s.current)+'</div>'+
-          '<button class="del-btn" onclick="deleteSav('+s.id+')">✕</button>'+
+          '<button class="del-btn" onclick="deleteSav('+s.id+')">X</button>'+
         '</div>'+
       '</div>'+
       '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%;"></div></div>'+
@@ -1047,7 +1048,7 @@ function renderSavings(){
         '<div class="meta-item"><div class="meta-label">%</div><div class="meta-val">'+pct.toFixed(0)+'%</div></div>'+
       '</div>'+
     '</div>';
-  }).join('')||'<div class="empty"><div class="empty-icon">🐖</div><p>Aucun objectif</p></div>';
+  }).join('')||'<div class="empty"><div class="empty-icon">[Epargne]</div><p>Aucun objectif</p></div>';
 }
 
 function renderSettings(){
@@ -1055,14 +1056,14 @@ function renderSettings(){
     var el=document.getElementById('cat'+t);
     if(!el) return;
     el.innerHTML=(categories[t]||[]).map(function(c){
-      return '<div class="cat-tag">'+c+'<button class="cat-del" onclick="delCat(\''+t+'\',\''+c+'\')">✕</button></div>';
+      return '<div class="cat-tag">'+c+'<button class="cat-del" onclick="delCat(\''+t+'\',\''+c+'\')">X</button></div>';
     }).join('');
   });
 }
 
-// ═══════════════════════════════════════════
+// ---
 //  EXCEL
-// ═══════════════════════════════════════════
+// ---
 function populateExcelYear(){
   var sel=document.getElementById('excelYear');
   if(!sel) return;
@@ -1095,13 +1096,13 @@ function renderExcel(){
     var total=vals.reduce(function(s,v){return s+v;},0);
     var cls=x.type==='Revenu'?'pos':'neg';
     rows+='<tr><td><span class="tag '+(x.type==='Revenu'?'income':'expense')+'" style="font-size:11px;">'+x.c+'</span></td>'+
-      vals.map(function(v){return '<td class="'+cls+'">'+(v>0?fmt(v):'—')+'</td>';}).join('')+
-      '<td class="'+cls+'" style="font-weight:700;">'+(total>0?fmt(total):'—')+'</td></tr>';
+      vals.map(function(v){return '<td class="'+cls+'">'+(v>0?fmt(v):'-')+'</td>';}).join('')+
+      '<td class="'+cls+'" style="font-weight:700;">'+(total>0?fmt(total):'-')+'</td></tr>';
   });
   var bilan=totals.inc.map(function(v,i){return v-totals.exp[i];});
-  var totalRows='<tr class="total-row"><td>📈 Revenus</td>'+totals.inc.map(function(v){return '<td class="pos">'+(v>0?fmt(v):'—')+'</td>';}).join('')+'<td class="pos" style="font-weight:700;">'+fmt(totals.inc.reduce(function(s,v){return s+v;},0))+'</td></tr>'+
-    '<tr class="total-row"><td>💸 Depenses</td>'+totals.exp.map(function(v){return '<td class="neg">'+(v>0?fmt(v):'—')+'</td>';}).join('')+'<td class="neg" style="font-weight:700;">'+fmt(totals.exp.reduce(function(s,v){return s+v;},0))+'</td></tr>'+
-    '<tr class="total-row"><td>💰 Bilan</td>'+bilan.map(function(v){return '<td class="'+(v>=0?'pos':'neg')+'">'+fmt(v)+'</td>';}).join('')+'<td class="'+(bilan.reduce(function(s,v){return s+v;},0)>=0?'pos':'neg')+'" style="font-weight:700;">'+fmt(bilan.reduce(function(s,v){return s+v;},0))+'</td></tr>';
+  var totalRows='<tr class="total-row"><td>? Revenus</td>'+totals.inc.map(function(v){return '<td class="pos">'+(v>0?fmt(v):'-')+'</td>';}).join('')+'<td class="pos" style="font-weight:700;">'+fmt(totals.inc.reduce(function(s,v){return s+v;},0))+'</td></tr>'+
+    '<tr class="total-row"><td>? Depenses</td>'+totals.exp.map(function(v){return '<td class="neg">'+(v>0?fmt(v):'-')+'</td>';}).join('')+'<td class="neg" style="font-weight:700;">'+fmt(totals.exp.reduce(function(s,v){return s+v;},0))+'</td></tr>'+
+    '<tr class="total-row"><td>[Epargne] Bilan</td>'+bilan.map(function(v){return '<td class="'+(v>=0?'pos':'neg')+'">'+fmt(v)+'</td>';}).join('')+'<td class="'+(bilan.reduce(function(s,v){return s+v;},0)>=0?'pos':'neg')+'" style="font-weight:700;">'+fmt(bilan.reduce(function(s,v){return s+v;},0))+'</td></tr>';
   document.getElementById('excelTable').innerHTML=thead+'<tbody>'+rows+totalRows+'</tbody>';
 
   // Recap par compte
@@ -1119,13 +1120,13 @@ function renderExcel(){
   var aRows='';
   Object.values(accData).forEach(function(a){
     aRows+='<tr><td style="font-weight:600;">'+a.name+'</td>'+
-      a.months.map(function(v){return '<td class="'+(v>0?'pos':v<0?'neg':'neutral')+'">'+(v!==0?fmt(Math.abs(v))+(v>0?' ↑':' ↓'):'—')+'</td>';}).join('')+
+      a.months.map(function(v){return '<td class="'+(v>0?'pos':v<0?'neg':'neutral')+'">'+(v!==0?fmt(Math.abs(v))+(v>0?'  (haut)':'  (bas)'):'-')+'</td>';}).join('')+
       '<td style="font-weight:700;" class="'+(a.balance>=0?'pos':'neg')+'">'+fmt(a.balance)+'</td></tr>';
   });
   var grandNet=Array(12).fill(0);
   Object.values(accData).forEach(function(a){a.months.forEach(function(v,i){grandNet[i]+=v;});});
   var grandBal=accounts.reduce(function(s,a){return s+(a.balance||0);},0);
-  aRows+='<tr class="total-row"><td>💰 Total</td>'+grandNet.map(function(v){return '<td class="'+(v>=0?'pos':'neg')+'">'+(v!==0?fmt(Math.abs(v)):'—')+'</td>';}).join('')+'<td style="font-weight:700;" class="'+(grandBal>=0?'pos':'neg')+'">'+fmt(grandBal)+'</td></tr>';
+  aRows+='<tr class="total-row"><td>[Epargne] Total</td>'+grandNet.map(function(v){return '<td class="'+(v>=0?'pos':'neg')+'">'+(v!==0?fmt(Math.abs(v)):'-')+'</td>';}).join('')+'<td style="font-weight:700;" class="'+(grandBal>=0?'pos':'neg')+'">'+fmt(grandBal)+'</td></tr>';
   document.getElementById('excelAccTable').innerHTML=aThead+'<tbody>'+aRows+'</tbody>';
 }
 
@@ -1141,9 +1142,9 @@ function exportCSV(){
   var a=document.createElement('a'); a.href=url; a.download='budget_export.csv'; a.click();
 }
 
-// ═══════════════════════════════════════════
+// ---
 //  CALENDAR
-// ═══════════════════════════════════════════
+// ---
 var monthNames=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
 
 function renderCalendar(){
@@ -1156,17 +1157,17 @@ function renderCalendar(){
   var grid=document.getElementById('calGrid');
   grid.innerHTML='';
   for(var i=0;i<startDow;i++){
-    var d=document.createElement('div'); d.className='cal-day other'; d.innerHTML='<div class="cal-num">—</div>'; grid.appendChild(d);
+    var d=document.createElement('div'); d.className='cal-day other'; d.innerHTML='<div class="cal-num">...</div>'; grid.appendChild(d);
   }
   for(var day=1;day<=last.getDate();day++){
-    var ds=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    var ds=yr+'-'+pad2(mo+1)+'-'+pad2(day);
     var dtxs=transactions.filter(function(t){return t.date===ds;});
     var dsubs=subscriptions.filter(function(s){return s.nextDate===ds||(s.frequency==='monthly_day'&&parseInt(s.dayOfMonth)===day);});
     var el=document.createElement('div');
     el.className='cal-day'+(ds===todayStr?' today':'');
     el.innerHTML='<div class="cal-num">'+day+'</div>'+
-      dtxs.map(function(t){return '<div class="cal-item '+(t.type==='Revenu'?'inc':'exp')+'">'+(t.type==='Revenu'?'+':'-')+t.amount.toFixed(0)+'€</div>';}).join('')+
-      dsubs.map(function(s){return '<div class="cal-item sub">🔄 '+s.name.substring(0,8)+'</div>';}).join('');
+      dtxs.map(function(t){return '<div class="cal-item '+(t.type==='Revenu'?'inc':'exp')+'">'+(t.type==='Revenu'?'+':'-')+t.amount.toFixed(0)+'\u20ac</div>';}).join('')+
+      dsubs.map(function(s){return '<div class="cal-item sub">[Abonnement] '+s.name.substring(0,8)+'</div>';}).join('');
     grid.appendChild(el);
   }
 }
@@ -1174,11 +1175,11 @@ function prevMon(){curMonth.setMonth(curMonth.getMonth()-1);renderCalendar();}
 function nextMon(){curMonth.setMonth(curMonth.getMonth()+1);renderCalendar();}
 function todayMon(){curMonth=new Date();renderCalendar();}
 
-// ═══════════════════════════════════════════
+// ---
 //  CSV IMPORT
-// ═══════════════════════════════════════════
+// ---
 function loadSample(){
-  var n1=accounts.length>0?accounts[0].name:'🏦 COURANT';
+  var n1=accounts.length>0?accounts[0].name:'[Banque] COURANT';
   var n2=accounts.length>1?accounts[1].name:n1;
   document.getElementById('csvInput').value=
     'compte,montant,date,type,categorie,description\n'+
@@ -1205,7 +1206,7 @@ function parseCSV(){
   var raw=document.getElementById('csvInput').value.trim();
   if(!raw){alert('Colle du contenu CSV dabord');return;}
   var lines=raw.split('\n').map(function(l){return l.trim();}).filter(function(l){return l;});
-  var dataLines=lines[0].toLowerCase().includes('compte')?lines.slice(1):lines;
+  var dataLines=lines[0].toLowerCase().indexOf('compte') !== -1?lines.slice(1):lines;
   parsedRows=[];
   var errors=[];
   dataLines.forEach(function(line,i){
@@ -1236,7 +1237,7 @@ function parseCSV(){
       '<div style="font-size:12px;color:'+(r.account?'var(--text2)':'var(--red)')+';">'+r.compte+'</div>'+
       '<div class="'+(r.type==='Revenu'?'amount-in':'amount-out')+'">'+(r.type==='Revenu'?'+':'-')+fmt(r.amount)+'</div>'+
       '<div style="font-size:12px;color:var(--text2);font-family:var(--mono);">'+r.date+'</div>'+
-      '<div><span class="import-status '+(r.valid?'ok':'err')+'">'+(r.valid?'✓ OK':'✗ Compte?')+'</span></div>'+
+      '<div><span class="import-status '+(r.valid?'ok':'err')+'">'+(r.valid?'OK OK':'X Compte?')+'</span></div>'+
       '</div>';
   }).join('');
   preview.scrollIntoView({behavior:'smooth'});
@@ -1259,9 +1260,9 @@ function confirmImport(){
   alert(imported+' transaction(s) importee(s) avec succes !');
 }
 
-// ═══════════════════════════════════════════
+// ---
 //  AI ADVISOR
-// ═══════════════════════════════════════════
+// ---
 function buildAIContext(){
   var inc=transactions.filter(function(t){return t.type==='Revenu';}).reduce(function(s,t){return s+t.amount;},0);
   var exp=transactions.filter(function(t){return t.type==='Depense';}).reduce(function(s,t){return s+t.amount;},0);
@@ -1297,11 +1298,11 @@ function sendAI(){
 function askAI(msg){
   var messages=document.getElementById('aiMessages');
   var sendBtn=document.getElementById('aiSendBtn');
-  messages.innerHTML+='<div class="msg user"><div class="user-icon">👤</div><div class="msg-bubble">'+msg+'</div></div>';
+  messages.innerHTML+='<div class="msg user"><div class="user-icon">?</div><div class="msg-bubble">'+msg+'</div></div>';
   messages.scrollTop=messages.scrollHeight;
   sendBtn.disabled=true;
   var loadId='load'+Date.now();
-  messages.innerHTML+='<div class="msg ai" id="'+loadId+'"><div class="msg-icon">🤖</div><div class="msg-bubble"><span class="loading-dot">Analyse</span></div></div>';
+  messages.innerHTML+='<div class="msg ai" id="'+loadId+'"><div class="msg-icon">?</div><div class="msg-bubble"><span class="loading-dot">Analyse</span></div></div>';
   messages.scrollTop=messages.scrollHeight;
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
@@ -1315,17 +1316,18 @@ function askAI(msg){
   }).then(function(r){return r.json();}).then(function(data){
     var reply=(data.content&&data.content.find(function(c){return c.type==='text';})||{}).text||'Desole, je n ai pas pu analyser tes donnees.';
     document.getElementById(loadId).querySelector('.msg-bubble').innerHTML=reply.replace(/\n/g,'<br>');
-  }).catch(function(e){
-    document.getElementById(loadId).querySelector('.msg-bubble').innerHTML='Erreur de connexion a l IA. Ajoutez votre cle API Anthropic.';
-  }).finally(function(){
+    sendBtn.disabled=false;
+    messages.scrollTop=messages.scrollHeight;
+  }).catch(function(){
+    document.getElementById(loadId).querySelector('.msg-bubble').innerHTML='Erreur de connexion a l IA.';
     sendBtn.disabled=false;
     messages.scrollTop=messages.scrollHeight;
   });
 }
 
-// ═══════════════════════════════════════════
+// ---
 //  MODALS / SELECTORS / UTILS
-// ═══════════════════════════════════════════
+// ---
 function openModal(id){document.getElementById(id).classList.add('active');}
 function closeModal(id){document.getElementById(id).classList.remove('active');}
 
@@ -1406,9 +1408,9 @@ function deleteAcc(){
   logout();
 }
 
-// ═══════════════════════════════════════════
+// ---
 //  INIT
-// ═══════════════════════════════════════════
+// ---
 window.addEventListener('load',function(){
   var savedId=localStorage.getItem('userId');
   var savedUser=localStorage.getItem('username');
