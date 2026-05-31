@@ -414,8 +414,15 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
           </select>
           <button class="btn-sm" onclick="exportCSV()">⬇️ Export CSV</button>
         </div>
-        <div class="excel-table-wrap">
+        <div class="excel-table-wrap" style="margin-bottom:24px;">
           <table class="excel-table" id="excelTable"></table>
+        </div>
+
+        <div class="section-header" style="margin-top:8px;">
+          <div class="section-title">🏦 Récap par compte</div>
+        </div>
+        <div class="excel-table-wrap">
+          <table class="excel-table" id="excelAccTable"></table>
         </div>
       </div>
 
@@ -1072,6 +1079,47 @@ function renderExcel(){
   </tr>`;
   
   table.innerHTML=thead+`<tbody>${rows}${totalRow}</tbody>`;
+
+  // ── RÉCAP PAR COMPTE ──
+  const accTable=document.getElementById('excelAccTable');
+  
+  // Build per-account monthly data
+  const accData={};
+  accounts.forEach(a=>{accData[a.id]={name:a.name,months:Array(12).fill(0),balance:a.balance||0};});
+  
+  transactions.forEach(tx=>{
+    const d=new Date(tx.date);
+    if(d.getFullYear()!==yr)return;
+    const m=d.getMonth();
+    if(!accData[tx.accountId])return;
+    if(tx.type==='Revenu') accData[tx.accountId].months[m]+=tx.amount;
+    else if(tx.type==='Dépense') accData[tx.accountId].months[m]-=tx.amount;
+    // transfers: +/- already reflected in balance
+  });
+
+  const accThead=`<thead><tr><th>Compte</th>${mLabels.map(m=>`<th>${m}</th>`).join('')}<th>Solde actuel</th></tr></thead>`;
+  let accRows='';
+  Object.values(accData).forEach(a=>{
+    const rowTotal=a.months.reduce((s,v)=>s+v,0);
+    accRows+=`<tr>
+      <td style="font-weight:600;">${a.name}</td>
+      ${a.months.map(v=>`<td class="${v>0?'pos':v<0?'neg':'neutral'}">${v!==0?fmt(Math.abs(v))+'<span style="font-size:10px;opacity:0.6;">'+(v>0?' ↑':' ↓')+'</span>':'—'}</td>`).join('')}
+      <td style="font-weight:700;" class="${a.balance>=0?'pos':'neg'}">${fmt(a.balance)}</td>
+    </tr>`;
+  });
+
+  // Grand total row per month (net flow)
+  const grandNet=Array(12).fill(0);
+  Object.values(accData).forEach(a=>{a.months.forEach((v,i)=>grandNet[i]+=v);});
+  const grandTotal=grandNet.reduce((s,v)=>s+v,0);
+  const grandBalance=accounts.reduce((s,a)=>s+(a.balance||0),0);
+  accRows+=`<tr class="total-row">
+    <td>💰 Total patrimoine</td>
+    ${grandNet.map(v=>`<td class="${v>=0?'pos':'neg'}">${v!==0?fmt(Math.abs(v)):'—'}</td>`).join('')}
+    <td style="font-weight:700;" class="${grandBalance>=0?'pos':'neg'}">${fmt(grandBalance)}</td>
+  </tr>`;
+
+  accTable.innerHTML=accThead+`<tbody>${accRows}</tbody>`;
 }
 
 function exportCSV(){
