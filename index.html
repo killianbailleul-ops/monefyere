@@ -234,8 +234,61 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .empty-icon{font-size:36px;margin-bottom:12px;}
 .loading-dot::after{content:'...';animation:dots 1.2s infinite;}
 @keyframes dots{0%{content:'.';}50%{content:'..';}100%{content:'...'}}
-@media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,1fr);}.accounts-grid{grid-template-columns:repeat(2,1fr);}.sidebar{width:180px;}}
-@media(max-width:650px){.app{flex-direction:column;}.sidebar{width:100%;height:auto;}.stats-grid{grid-template-columns:1fr 1fr;}.accounts-grid{grid-template-columns:1fr;}.form-grid.c3{grid-template-columns:1fr 1fr;}}
+@media(max-width:900px){
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .accounts-grid{grid-template-columns:repeat(2,1fr);}
+  .sidebar{width:200px;}
+}
+@media(max-width:650px){
+  .app{flex-direction:column;}
+  .sidebar{
+    width:100%;height:auto;flex-direction:row;
+    padding:8px 10px;border-right:none;
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;overflow-x:auto;
+    align-items:center;gap:4px;
+  }
+  .logo{display:none;}
+  .nav-section{display:none;}
+  .sidebar-bottom{display:none;}
+  .nav-item{
+    flex-direction:column;padding:6px 8px;font-size:10px;
+    gap:2px;min-width:50px;align-items:center;white-space:nowrap;
+    flex-shrink:0;margin-bottom:0;border-radius:8px;
+  }
+  .nav-item .icon{font-size:18px;margin:0;}
+  .nav-item span:last-child{font-size:9px;}
+  .main{overflow:hidden;}
+  .topbar{padding:10px 14px;height:48px;}
+  .topbar-title{font-size:13px;}
+  .sync-badge{font-size:10px;padding:3px 7px;}
+  .content{padding:12px;}
+  .stats-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .stat-card{padding:14px;}
+  .stat-value{font-size:20px;}
+  .accounts-grid{grid-template-columns:1fr 1fr;gap:10px;}
+  .acc-card{padding:14px;}
+  .acc-balance{font-size:18px;}
+  .form-grid.c3{grid-template-columns:1fr 1fr;}
+  .form-grid.c2{grid-template-columns:1fr;}
+  .month-summary{grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .ms-val{font-size:16px;}
+  .table-head,.table-row{font-size:11px;gap:6px;padding:10px 10px;}
+  .tx-cols{grid-template-columns:1.4fr 0.8fr 0.7fr 36px;}
+  .tx-cols .tx-date,.tx-cols .tx-cat{display:none;}
+  .chart-area{padding:14px;}
+  .modal-box{padding:20px;}
+  .cal-day{min-height:55px;padding:5px;}
+  .cal-num{font-size:11px;}
+  .cal-item{font-size:9px;}
+  .sidebar::-webkit-scrollbar{height:0;}
+}
+@media(max-width:380px){
+  .stats-grid{grid-template-columns:1fr 1fr;gap:8px;}
+  .accounts-grid{grid-template-columns:1fr;}
+  .nav-item span:last-child{display:none;}
+  .nav-item{min-width:40px;}
+}
 </style>
 </head>
 <body>
@@ -308,7 +361,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
         <div class="section-header"><div class="section-title">🏦 Mes Comptes</div></div>
         <div class="accounts-grid" id="d-accounts"></div>
         <div class="section-header"><div class="section-title">📋 Dernieres transactions</div></div>
-        <div class="table-wrap"><div class="table-head tx-cols"><div>Description</div><div>Categorie</div><div>Compte</div><div>Montant</div><div>Date</div><div></div></div><div id="d-txs"></div></div>
+        <div class="table-wrap"><div class="table-head tx-cols"><div>Description</div><div class="tx-cat">Categorie</div><div>Compte</div><div>Montant</div><div class="tx-date">Date</div><div></div></div><div id="d-txs"></div></div>
       </div>
 
       <!-- ACCOUNTS -->
@@ -355,7 +408,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
           <div class="ms-card"><div class="ms-label">Depenses</div><div class="ms-val red" id="ms-out">0€</div></div>
           <div class="ms-card"><div class="ms-label">Bilan</div><div class="ms-val" id="ms-bal">0€</div></div>
         </div>
-        <div class="table-wrap"><div class="table-head tx-cols"><div>Description</div><div>Categorie</div><div>Compte</div><div>Montant</div><div>Date</div><div></div></div><div id="txList"></div></div>
+        <div class="table-wrap"><div class="table-head tx-cols"><div>Description</div><div class="tx-cat">Categorie</div><div>Compte</div><div>Montant</div><div class="tx-date">Date</div><div></div></div><div id="txList"></div></div>
       </div>
 
       <!-- CALENDAR -->
@@ -936,10 +989,12 @@ function renderDashboard(){
 
 function renderCashflow(){
   var chart = document.getElementById('cashflowChart');
+  if(!chart) return;
+  var monthLabels=['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'];
   var months=[];
   for(var i=5;i>=0;i--){
     var d=new Date(); d.setMonth(d.getMonth()-i);
-    months.push({label:d.toLocaleString('fr',{month:'short'}),year:d.getFullYear(),month:d.getMonth()});
+    months.push({label:monthLabels[d.getMonth()],year:d.getFullYear(),month:d.getMonth()});
   }
   var data=months.map(function(m){
     var inc=0,exp=0;
@@ -954,19 +1009,47 @@ function renderCashflow(){
   });
   var maxV=1;
   data.forEach(function(d){if(d.inc>maxV)maxV=d.inc;if(d.exp>maxV)maxV=d.exp;});
-  chart.innerHTML=data.map(function(d){
-    return '<div class="chart-bar-wrap">'+
-      '<div style="width:100%;display:flex;gap:3px;align-items:flex-end;flex:1;">'+
-      '<div class="chart-bar" style="flex:1;height:'+(d.inc/maxV*100)+'%;background:var(--primary);opacity:0.8;" title="Revenus: '+fmt(d.inc)+'"></div>'+
-      '<div class="chart-bar" style="flex:1;height:'+(d.exp/maxV*100)+'%;background:var(--red);opacity:0.8;" title="Depenses: '+fmt(d.exp)+'"></div>'+
-      '</div><div class="chart-label">'+d.label+'</div></div>';
-  }).join('');
+  var html='';
+  for(var i=0;i<data.length;i++){
+    var d=data[i];
+    var hInc=Math.max(2,Math.round((d.inc/maxV)*100));
+    var hExp=Math.max(2,Math.round((d.exp/maxV)*100));
+    html+='<div class="chart-bar-wrap">' +
+      '<div style="width:100%;display:flex;gap:3px;align-items:flex-end;height:100px;">' +
+        '<div style="flex:1;height:'+hInc+'%;background:var(--primary);opacity:0.85;border-radius:3px 3px 0 0;min-height:2px;" title="Rev: '+fmt(d.inc)+'"></div>' +
+        '<div style="flex:1;height:'+hExp+'%;background:var(--red);opacity:0.85;border-radius:3px 3px 0 0;min-height:2px;" title="Dep: '+fmt(d.exp)+'"></div>' +
+      '</div>' +
+      '<div class="chart-label">'+d.label+'</div>' +
+    '</div>';
+  }
+  chart.innerHTML=html;
 }
 
 function renderAccList(){
   document.getElementById('accList').innerHTML = accounts.map(function(a){
-    return '<div class="acc-card"><div class="acc-name">'+a.name+'</div><div class="acc-balance">'+fmt(a.balance||0)+'</div></div>';
-  }).join('')||'<div class="empty" style="grid-column:1/-1"><div class="empty-icon">[Banque]</div><p>Aucun compte</p></div>';
+    var txCount = transactions.filter(function(t){return t.accountId===a.id;}).length;
+    return '<div class="acc-card">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">' +
+        '<div class="acc-name">'+a.name+'</div>' +
+        '<button class="del-btn" style="width:24px;height:24px;font-size:11px;" onclick="deleteAccount('+a.id+')" title="Supprimer">X</button>' +
+      '</div>' +
+      '<div class="acc-balance">'+fmt(a.balance||0)+'</div>' +
+      '<div style="font-size:11px;color:var(--text2);margin-top:6px;">'+txCount+' transaction(s)</div>' +
+    '</div>';
+  }).join('')||'<div class="empty" style="grid-column:1/-1"><p>Aucun compte. Ajoutez-en un !</p></div>';
+}
+
+function deleteAccount(accId){
+  var acc = accounts.find(function(a){return a.id===accId;});
+  if(!acc) return;
+  var txCount = transactions.filter(function(t){return t.accountId===accId;}).length;
+  var msg = 'Supprimer le compte "'+acc.name+'" ?';
+  if(txCount > 0) msg += '\n\nAttention : '+txCount+' transaction(s) liees seront aussi supprimees.';
+  if(!confirm(msg)) return;
+  transactions = transactions.filter(function(t){return t.accountId!==accId;});
+  accounts = accounts.filter(function(a){return a.id!==accId;});
+  saveAll();
+  renderAll();
 }
 
 function txRow(tx){
@@ -975,11 +1058,11 @@ function txRow(tx){
   var sign = tx.type==='Revenu'?'+':tx.type==='Transfert'?'<->':'-';
   var tagCls = tx.type==='Revenu'?'income':tx.type==='Transfert'?'transfer':tx.type==='Epargne'?'savings':'expense';
   return '<div class="table-row tx-cols">'+
-    '<div>'+tx.description+'</div>'+
-    '<div><span class="tag '+tagCls+'">'+tx.category+'</span></div>'+
+    '<div><div>'+tx.description+'</div><div style="font-size:10px;color:var(--text2);">'+tx.date+'</div></div>'+
+    '<div class="tx-cat"><span class="tag '+tagCls+'">'+tx.category+'</span></div>'+
     '<div style="color:var(--text2);font-size:12px;">'+accName+'</div>'+
     '<div class="'+cls+'">'+sign+fmt(tx.amount)+'</div>'+
-    '<div style="color:var(--text2);font-size:12px;font-family:var(--mono);">'+tx.date+'</div>'+
+    '<div class="tx-date" style="color:var(--text2);font-size:12px;font-family:var(--mono);">'+tx.date+'</div>'+
     '<button class="del-btn" onclick="deleteTx('+tx.id+')">X</button>'+
     '</div>';
 }
