@@ -701,31 +701,54 @@ function loadAll(){
 }
 
 // ───────── AUTH ─────────
-async function handleLogin(){
+function getUsers(){
+  try{return JSON.parse(localStorage.getItem('budgetUsers')||'{}');}catch(e){return {};}
+}
+function saveUsers(users){
+  localStorage.setItem('budgetUsers',JSON.stringify(users));
+}
+
+function handleLogin(){
   const u=document.getElementById('loginUser').value.trim();
   const p=document.getElementById('loginPass').value.trim();
   if(!u||!p){alert('Remplissez tous les champs');return;}
-  try{
-    const d=await fbGet(`/users/${u}`);
-    if(!d||!d.password){alert('Utilisateur non trouvé');return;}
-    if(d.password!==p){alert('Mot de passe incorrect');return;}
-    userId='fb_'+btoa(u);username=u;userEmail=u+'@budgetpro.app';
-    localStorage.setItem('userId',userId);localStorage.setItem('username',username);localStorage.setItem('userEmail',userEmail);
-    loadAll();processSubscriptions();showApp();renderAll();
-  }catch(e){alert('Erreur: '+e.message);}
+  const users=getUsers();
+  if(!users[u]){alert('Utilisateur non trouvé. Créez un compte.');return;}
+  if(users[u].password!==p){alert('Mot de passe incorrect');return;}
+  userId='local_'+btoa(encodeURIComponent(u));username=u;userEmail=u+'@budgetpro.app';
+  localStorage.setItem('userId',userId);
+  localStorage.setItem('username',username);
+  localStorage.setItem('userEmail',userEmail);
+  loadAll();processSubscriptions();showApp();renderAll();
+  // Sync Firebase en arrière-plan (optionnel)
+  fbGet('/users/'+u).then(d=>{
+    if(d&&d.data){
+      const fbAcc=d.data.accounts||[];
+      if(fbAcc.length>accounts.length){
+        accounts=d.data.accounts||accounts;
+        transactions=d.data.transactions||transactions;
+        subscriptions=d.data.subscriptions||subscriptions;
+        savings=d.data.savings||savings;
+        categories=d.data.categories||categories;
+        saveAll();renderAll();
+      }
+    }
+  }).catch(()=>{});
 }
 
-async function handleRegister(){
+function handleRegister(){
   const u=document.getElementById('regUser').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
   const p=document.getElementById('regPass').value.trim();
-  if(!u||!p){alert('Champs invalides');return;}
-  try{
-    const ex=await fbGet(`/users/${u}`);
-    if(ex&&ex.password){alert('Utilisateur déjà existant');return;}
-    await fbSet(`/users/${u}`,{password:p,email:u+'@budgetpro.app',createdAt:new Date().toISOString(),data:{accounts:[],transactions:[],subscriptions:[],savings:[],categories:{}}});
-    alert('Compte créé ! Connectez-vous.');
-    showLogin();
-  }catch(e){alert('Erreur: '+e.message);}
+  if(!u||!p||u.length<2){alert('Nom d'utilisateur trop court ou invalide');return;}
+  if(p.length<3){alert('Mot de passe trop court (min 3 caractères)');return;}
+  const users=getUsers();
+  if(users[u]){alert('Utilisateur déjà existant');return;}
+  users[u]={password:p,email:u+'@budgetpro.app',createdAt:new Date().toISOString()};
+  saveUsers(users);
+  // Sync Firebase en arrière-plan
+  fbSet('/users/'+u,{password:p,email:u+'@budgetpro.app',createdAt:new Date().toISOString(),data:{accounts:[],transactions:[],subscriptions:[],savings:[],categories:{}}}).catch(()=>{});
+  alert('Compte créé ! Connectez-vous.');
+  showLogin();
 }
 
 function showApp(){
@@ -1373,10 +1396,12 @@ function toggleTheme(){
 
 async function resetPass(){
   const np=prompt('Nouveau mot de passe:');
-  if(!np||np.length<3){alert('Trop court');return;}
+  if(!np||np.length<3){alert('Trop court (min 3 caractères)');return;}
   const cp=prompt('Confirmez:');
   if(cp!==np){alert('Ne correspond pas');return;}
-  await fbSet(`/users/${username}/password`,np);
+  const users=getUsers();
+  if(users[username]){users[username].password=np;saveUsers(users);}
+  fbSet('/users/'+username+'/password',np).catch(()=>{});
   alert('Mot de passe changé !');
   logout();
 }
@@ -1385,8 +1410,11 @@ async function deleteAcc(){
   if(!confirm('SUPPRIMER votre compte ? Action irréversible.'))return;
   const c=prompt('Tapez "SUPPRIMER" pour confirmer:');
   if(c!=='SUPPRIMER'){alert('Annulé');return;}
-  await fbSet(`/users/${username}`,null);
-  localStorage.removeItem(`budget_${userId}`);
+  const users=getUsers();
+  delete users[username];
+  saveUsers(users);
+  localStorage.removeItem('budget_'+userId);
+  fbSet('/users/'+username,null).catch(()=>{});
   alert('Compte supprimé.');
   logout();
 }
@@ -1526,11 +1554,19 @@ window.addEventListener('load',()=>{
   const savedId=localStorage.getItem('userId');
   const savedUser=localStorage.getItem('username');
   if(savedId&&savedUser){
-    userId=savedId;username=savedUser;userEmail=localStorage.getItem('userEmail')||username+'@budgetpro.app';
-    loadAll();processSubscriptions();showApp();renderAll();renderCalendar();
+    // Vérifier que le compte existe toujours
+    const users=getUsers();
+    if(users[savedUser]||savedId.startsWith('fb_')){
+      userId=savedId;username=savedUser;userEmail=localStorage.getItem('userEmail')||savedUser+'@budgetpro.app';
+      loadAll();processSubscriptions();showApp();renderAll();renderCalendar();
+    } else {
+      // Session invalide, nettoyer
+      ['userId','username','userEmail'].forEach(k=>localStorage.removeItem(k));
+    }
   }
   setInterval(processSubscriptions,3600000);
 });
 </script>
 </body>
 </html>
+
