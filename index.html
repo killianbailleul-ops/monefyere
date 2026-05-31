@@ -247,6 +247,28 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   .accounts-grid{grid-template-columns:1fr;}
   .form-grid.cols3{grid-template-columns:1fr 1fr;}
 }
+
+/* IMPORT SCREEN */
+.import-hero{text-align:center;padding:32px 20px 24px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:24px;}
+.import-icon{font-size:40px;margin-bottom:12px;}
+.import-title{font-size:20px;font-weight:700;margin-bottom:6px;}
+.import-sub{font-size:13px;color:var(--text2);max-width:500px;margin:0 auto;}
+.import-format{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px;}
+.format-title{font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text);}
+.format-code{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:14px 16px;font-family:var(--mono);font-size:12px;color:var(--primary);line-height:1.8;margin-bottom:14px;overflow-x:auto;white-space:pre;}
+.format-rules{display:flex;flex-direction:column;gap:6px;}
+.rule{font-size:12px;color:var(--text2);display:flex;align-items:baseline;gap:10px;}
+.rule-key{background:var(--primary-dim);color:var(--primary);padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:11px;font-weight:700;flex-shrink:0;}
+.rule code{background:var(--bg3);padding:1px 6px;border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--accent);}
+.import-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.import-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.csv-textarea{width:100%;min-height:180px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;color:var(--primary);font-family:var(--mono);font-size:12px;resize:vertical;line-height:1.8;}
+.csv-textarea:focus{outline:none;border-color:var(--primary);}
+.import-status{display:inline-flex;align-items:center;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;}
+.import-status.ok{background:var(--primary-dim);color:var(--primary);}
+.import-status.warn{background:var(--accent-dim);color:var(--accent);}
+.import-status.err{background:var(--red-dim);color:var(--red);}
+.import-error-box{background:var(--red-dim);border:1px solid rgba(248,113,113,0.3);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--red);}
 </style>
 </head>
 <body>
@@ -287,6 +309,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <div class="nav-item" onclick="go('savings',this)"><span class="icon">🐖</span><span class="nav-label">Épargne</span></div>
       <div class="nav-section">Insights</div>
       <div class="nav-item" onclick="go('advisor',this)"><span class="icon">🤖</span><span class="nav-label">Conseiller IA</span></div>
+      <div class="nav-item" onclick="go('import',this)"><span class="icon">📥</span><span class="nav-label">Import CSV</span></div>
       <div class="nav-item" onclick="go('settings',this)"><span class="icon">⚙️</span><span class="nav-label">Paramètres</span></div>
     </div>
     <div class="sidebar-bottom">
@@ -469,6 +492,61 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
         <div class="ai-input-row">
           <input class="ai-input" type="text" id="aiInput" placeholder="Pose-moi une question sur tes finances..." onkeydown="if(event.key==='Enter')sendAI()">
           <button class="ai-send" id="aiSendBtn" onclick="sendAI()">Envoyer →</button>
+        </div>
+      </div>
+
+      <!-- IMPORT CSV -->
+      <div class="screen" id="s-import">
+        <div class="import-hero">
+          <div class="import-icon">📥</div>
+          <div class="import-title">Import de relevé bancaire</div>
+          <div class="import-sub">Colle ton CSV généré par Gemini/ChatGPT et importe toutes tes transactions en un clic</div>
+        </div>
+
+        <div class="import-format">
+          <div class="format-title">📋 Format CSV attendu</div>
+          <div class="format-code">compte,montant,date,type,categorie,description
+🏦 MON COMPTE,1500.00,2026-05-01,gain,Salaire,Virement salaire
+🏦 MON COMPTE,45.99,2026-05-03,prelevement,Alimentation,Courses Leclerc
+⛽ ESSENCE,80.00,2026-05-05,prelevement,Transport,Total station</div>
+          <div class="format-rules">
+            <div class="rule"><span class="rule-key">compte</span> Nom exact du compte (copie depuis "Mes Comptes")</div>
+            <div class="rule"><span class="rule-key">montant</span> Toujours positif (ex: 45.99)</div>
+            <div class="rule"><span class="rule-key">date</span> Format AAAA-MM-JJ (ex: 2026-05-15)</div>
+            <div class="rule"><span class="rule-key">type</span> <code>gain</code> ou <code>prelevement</code></div>
+            <div class="rule"><span class="rule-key">categorie</span> Une de tes catégories existantes</div>
+            <div class="rule"><span class="rule-key">description</span> Libellé libre</div>
+          </div>
+        </div>
+
+        <div class="import-panel">
+          <div class="import-panel-header">
+            <div class="section-title">📄 Colle ton CSV ici</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn-sm" onclick="loadSampleCSV()">Charger exemple</button>
+              <button class="btn-sm" onclick="document.getElementById('csvInput').value=''">Effacer</button>
+            </div>
+          </div>
+          <textarea id="csvInput" class="csv-textarea" placeholder="compte,montant,date,type,categorie,description&#10;🏦 MON COMPTE,1500.00,2026-05-01,gain,Salaire,Salaire mai&#10;..."></textarea>
+          <button class="btn-sm primary" style="width:100%;padding:12px;font-size:14px;margin-top:12px;" onclick="parseCSV()">🔍 Analyser le CSV</button>
+        </div>
+
+        <div id="importPreview" style="display:none;">
+          <div class="section-header" style="margin-top:24px;">
+            <div class="section-title">👁️ Aperçu — <span id="previewCount">0</span> transactions détectées</div>
+            <button class="btn-sm primary" onclick="confirmImport()">✅ Importer tout</button>
+          </div>
+          <div id="importErrors" style="margin-bottom:12px;"></div>
+          <div class="table-wrap tx-table">
+            <div class="table-head" style="grid-template-columns:1.6fr 1fr 1fr 1fr 1fr 80px;">
+              <div>Description</div><div>Catégorie</div><div>Compte</div><div>Montant</div><div>Date</div><div>Statut</div>
+            </div>
+            <div id="importRows"></div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">
+            <button class="btn-sm" onclick="document.getElementById('importPreview').style.display='none'">Annuler</button>
+            <button class="btn-sm primary" onclick="confirmImport()">✅ Importer <span id="importCount2">0</span> transactions</button>
+          </div>
         </div>
       </div>
 
@@ -676,7 +754,7 @@ function showLogin(){document.getElementById('formLogin').style.display='block';
 function showReg(){document.getElementById('formLogin').style.display='none';document.getElementById('formReg').style.display='block';}
 
 // ───────── NAVIGATION ─────────
-const titles={dashboard:'Tableau de bord',accounts:'Mes Comptes',transactions:'Transactions',calendar:'Calendrier',excel:'Tableau Mensuel',subscriptions:'Abonnements',savings:'Épargne',advisor:'Conseiller IA',settings:'Paramètres'};
+const titles={dashboard:'Tableau de bord',accounts:'Mes Comptes',transactions:'Transactions',calendar:'Calendrier',excel:'Tableau Mensuel',subscriptions:'Abonnements',savings:'Épargne',advisor:'Conseiller IA',import:'Import CSV',settings:'Paramètres'};
 function go(id,el){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('s-'+id).classList.add('active');
@@ -1314,6 +1392,136 @@ async function deleteAcc(){
 }
 
 // ───────── INIT ─────────
+
+// ───────── CSV IMPORT ─────────
+let parsedRows = [];
+
+function loadSampleCSV(){
+  const accName = accounts.length > 0 ? accounts[0].name : '🏦 MON COMPTE';
+  const acc2 = accounts.length > 1 ? accounts[1].name : accName;
+  document.getElementById('csvInput').value = `compte,montant,date,type,categorie,description
+${accName},1500.00,2026-05-01,gain,Salaire,Virement salaire mai
+${accName},45.99,2026-05-03,prelevement,Alimentation,Courses Leclerc
+${acc2},80.00,2026-05-05,prelevement,Transport,Total station
+${accName},9.99,2026-05-10,prelevement,Loisirs,Netflix
+${accName},200.00,2026-05-15,gain,Freelance,Mission client`;
+}
+
+function parseCSV(){
+  const raw = document.getElementById('csvInput').value.trim();
+  if(!raw){alert('Colle du contenu CSV dabord');return;}
+  
+  const lines = raw.split('\n').map(l=>l.trim()).filter(l=>l);
+  // Skip header line if present
+  const dataLines = lines[0].toLowerCase().includes('compte') ? lines.slice(1) : lines;
+  
+  parsedRows = [];
+  const errors = [];
+  
+  dataLines.forEach((line, i) => {
+    if(!line) return;
+    // Handle quoted CSV
+    const cols = parseCSVLine(line);
+    if(cols.length < 4){errors.push(`Ligne ${i+2}: format invalide (${cols.length} colonnes)`);return;}
+    
+    const [compte, montant, date, type, categorie='Autre', description='Transaction'] = cols;
+    const amount = parseFloat(montant.replace(',','.'));
+    
+    if(!compte){errors.push(`Ligne ${i+2}: compte manquant`);return;}
+    if(isNaN(amount)||amount<=0){errors.push(`Ligne ${i+2}: montant invalide "${montant}"`);return;}
+    if(!date.match(/\d{4}-\d{2}-\d{2}/)){errors.push(`Ligne ${i+2}: date invalide "${date}" (format AAAA-MM-JJ requis)`);return;}
+    if(!['gain','prelevement'].includes(type.toLowerCase())){errors.push(`Ligne ${i+2}: type invalide "${type}" (doit être gain ou prelevement)`);return;}
+    
+    const acc = accounts.find(a => a.name.toLowerCase() === compte.trim().toLowerCase());
+    const txType = type.toLowerCase() === 'gain' ? 'Revenu' : 'Dépense';
+    
+    parsedRows.push({
+      compte: compte.trim(),
+      account: acc || null,
+      amount,
+      date: date.trim(),
+      type: txType,
+      category: (categorie||'Autre').trim(),
+      description: (description||'Transaction').trim(),
+      valid: !!acc
+    });
+  });
+  
+  // Show preview
+  const preview = document.getElementById('importPreview');
+  preview.style.display = 'block';
+  document.getElementById('previewCount').textContent = parsedRows.length;
+  document.getElementById('importCount2').textContent = parsedRows.filter(r=>r.valid).length;
+  
+  // Show errors
+  const errBox = document.getElementById('importErrors');
+  if(errors.length > 0){
+    errBox.innerHTML = `<div class="import-error-box">⚠️ ${errors.length} erreur(s) ignorée(s) :<br>${errors.join('<br>')}</div>`;
+  } else {
+    errBox.innerHTML = '';
+  }
+  
+  // Render rows
+  document.getElementById('importRows').innerHTML = parsedRows.map((r,i) => `
+    <div class="table-row" style="grid-template-columns:1.6fr 1fr 1fr 1fr 1fr 80px;">
+      <div>${r.description}</div>
+      <div><span class="tag ${r.type==='Revenu'?'income':'expense'}" style="font-size:11px;">${r.category}</span></div>
+      <div style="font-size:12px;color:${r.account?'var(--text2)':'var(--red)'};">${r.compte}</div>
+      <div class="${r.type==='Revenu'?'amount-in':'amount-out'}">${r.type==='Revenu'?'+':'-'}${fmt(r.amount)}</div>
+      <div style="font-size:12px;color:var(--text2);font-family:var(--mono);">${r.date}</div>
+      <div><span class="import-status ${r.valid?'ok':'err'}">${r.valid?'✓ OK':'✗ Compte?'}</span></div>
+    </div>
+  `).join('');
+  
+  preview.scrollIntoView({behavior:'smooth'});
+}
+
+function parseCSVLine(line){
+  const result = [];
+  let cur = '';
+  let inQuote = false;
+  for(let i=0;i<line.length;i++){
+    const c = line[i];
+    if(c==='"'){inQuote=!inQuote;}
+    else if(c===','&&!inQuote){result.push(cur.trim());cur='';}
+    else{cur+=c;}
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function confirmImport(){
+  const valid = parsedRows.filter(r=>r.valid);
+  if(valid.length === 0){alert('Aucune transaction valide à importer. Vérifiez les noms de comptes.');return;}
+  
+  let imported = 0;
+  valid.forEach(r => {
+    transactions.push({
+      id: Date.now() + imported,
+      accountId: r.account.id,
+      type: r.type,
+      amount: r.amount,
+      description: r.description,
+      category: r.category,
+      date: r.date,
+      savingsId: null
+    });
+    updateBalance(r.account.id, r.type==='Revenu' ? r.amount : -r.amount);
+    imported++;
+  });
+  
+  saveAll();
+  renderAll();
+  
+  // Reset
+  parsedRows = [];
+  document.getElementById('importPreview').style.display = 'none';
+  document.getElementById('csvInput').value = '';
+  
+  alert(\`✅ \${imported} transaction(s) importée(s) avec succès !\`);
+  go('transactions', document.querySelector('.nav-item'));
+}
+
 window.addEventListener('load',()=>{
   const savedId=localStorage.getItem('userId');
   const savedUser=localStorage.getItem('username');
